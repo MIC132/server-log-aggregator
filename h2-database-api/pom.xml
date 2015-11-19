@@ -12,11 +12,11 @@
     <artifactId>h2-database-api</artifactId>
 
     <dependencies>
-        <dependency>
+        <!--<dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-core</artifactId>
             <version>5.0.3.Final</version>
-        </dependency>
+        </dependency>-->
 
         <dependency>
             <groupId>com.h2database</groupId>
