@@ -1,6 +1,5 @@
 import org.junit.Test;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
@@ -11,12 +10,13 @@ public class DatabaseTests {
     private H2DatabaseAccessor accessor = new H2DatabaseAccessor("sa", "", "tcp://localhost/~/test");
 
     private final String tableName = "people";
-    private final List<String> columnNames = Arrays.asList("id", "first_name", "last_name");
+    private final String nonExistingTableName = "nonExistingTable";
+    private final List<String> columnNames = Arrays.asList("first_name", "last_name");
     private final List<String> primaryKeys = Arrays.asList("id");
 
     @Test
     public void createTableTest() {
-        assertTrue(accessor.addTable(tableName, columnNames, primaryKeys));
+        assertTrue(accessor.addTable(tableName, columnNames));
     }
 
     @Test
@@ -26,15 +26,27 @@ public class DatabaseTests {
 
     @Test
     public void createTableAndInsertValuesTest() {
-        assertTrue(accessor.addTable(tableName, columnNames, primaryKeys));
+        assertTrue(accessor.addTable(tableName, columnNames));
 
-        List<String> rowOne = Arrays.asList("1", "Jan", "Kowalski");
-        List<String> rowTwo = Arrays.asList("2", "Andrzej", "Nowak");
-        List<String> rowThree = Arrays.asList("3", "Roman", "Chrobry");
+        List<String> valuesOne = Arrays.asList("Jan", "Kowalski");
+        List<String> valuesTwo = Arrays.asList("Andrzej", "Nowak");
+        List<String> valuesThree = Arrays.asList("Roman", "Chrobry");
+        List<String> valuesFour = Arrays.asList("Lech", "Kulesza");
 
-        assertTrue(accessor.addRowToTable(tableName, columnNames, rowOne));
-        assertTrue(accessor.addRowToTable(tableName, columnNames, rowTwo));
-        assertTrue(accessor.addRowToTable(tableName, columnNames, rowThree));
+        try {
+            assertTrue(accessor.addRowToTable(tableName, columnNames, valuesOne));
+            assertTrue(accessor.addRowToTable(tableName, columnNames, valuesTwo));
+            assertTrue(accessor.addRowToTable(tableName, columnNames, valuesThree));
+            assertTrue(accessor.addRowToTable(tableName, columnNames, valuesFour));
+        } catch (SQLException e) {
+            throw new RuntimeException("Cos sie zejbalo");
+        }
+    }
+
+    @Test(expected = SQLException.class)
+    public void nonExistingTableTest() throws SQLException {
+        List<String> valuesOne = Arrays.asList("Jan", "Kowalski");
+        assertTrue(accessor.addRowToTable(nonExistingTableName, columnNames, valuesOne));
     }
 
     @Test
