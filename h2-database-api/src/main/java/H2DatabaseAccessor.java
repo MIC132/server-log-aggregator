@@ -1,4 +1,8 @@
+import org.h2.util.StringUtils;
+
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -6,8 +10,9 @@ import java.util.List;
  * Requires informations about database name and host/domain, also needs user security credentials (username, password).
  */
 public class H2DatabaseAccessor {
-    private static final String ifExistsQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = (?)";
+    private static final String ifExistsQuery = "select * from INFORMATION_SCHEMA.TABLES where TABLE_NAME = (?)";
     private final H2DatabaseConnector connector;
+    private static final String primaryKey = "id";
 
     /**
      * Basic constructor of @see H2DatabaseAccessor
@@ -45,7 +50,9 @@ public class H2DatabaseAccessor {
 
             // Create query
             StringBuilder columnsBuilder = new StringBuilder();
-            StringBuilder queryBuilder = new StringBuilder("create table ").append(tableName).append(" (id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id)");
+            StringBuilder queryBuilder = new StringBuilder("create table ")
+                    .append(tableName)
+                    .append(String.format(" (%s int unsigned not null auto_increment, primary key (%s)", primaryKey, primaryKey));
 
             for (String columnName : columnNames) {
                 columnsBuilder.append(", ").append(columnName).append(" varchar(255) ");
@@ -222,7 +229,17 @@ public class H2DatabaseAccessor {
 
             ResultSet resultSet = statement.executeQuery();
 
-            // TODO Get ze rezultz into da choppa!!!
+            result = new LinkedList<List<String>>();
+            int columnsNum = resultSet.getMetaData().getColumnCount();
+            while(resultSet.next()){
+                int index = 1;
+                List<String> rowValues = new ArrayList<String>(columnsNum);
+                while(index <= columnsNum) {
+                    rowValues.add(resultSet.getString(index));
+                    index++;
+                }
+                result.add(rowValues);
+            }
 
             statement.close();
 

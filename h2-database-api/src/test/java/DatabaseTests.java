@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import static java.util.Arrays.*;
 import static org.junit.Assert.assertTrue;
 
 public class DatabaseTests {
@@ -11,8 +12,13 @@ public class DatabaseTests {
 
     private final String tableName = "people";
     private final String nonExistingTableName = "nonExistingTable";
-    private final List<String> columnNames = Arrays.asList("first_name", "last_name");
-    private final List<String> primaryKeys = Arrays.asList("id");
+    private final List<String> columnNames = asList("first_name", "last_name");
+    private final List<String> primaryKeys = asList("id");
+
+    private final List<String> valuesOne = asList("Jan", "Kowalski");
+    private final List<String> valuesTwo = asList("Andrzej", "Nowak");
+    private final List<String> valuesThree = asList("Roman", "Chrobry");
+    private final List<String> valuesFour = asList("Lech", "Kulesza");
 
     @Test
     public void createTableTest() {
@@ -40,10 +46,7 @@ public class DatabaseTests {
             e.printStackTrace();
         }
 
-        List<String> valuesOne = Arrays.asList("Jan", "Kowalski");
-        List<String> valuesTwo = Arrays.asList("Andrzej", "Nowak");
-        List<String> valuesThree = Arrays.asList("Roman", "Chrobry");
-        List<String> valuesFour = Arrays.asList("Lech", "Kulesza");
+
 
         try {
             assertTrue(accessor.addRowToTable(tableName, columnNames, valuesOne));
@@ -51,31 +54,30 @@ public class DatabaseTests {
             assertTrue(accessor.addRowToTable(tableName, columnNames, valuesThree));
             assertTrue(accessor.addRowToTable(tableName, columnNames, valuesFour));
         } catch (SQLException e) {
-            throw new RuntimeException("Cos sie zejbalo");
+            e.printStackTrace();
         }
     }
 
     @Test(expected = SQLException.class)
     public void nonExistingTableTest() throws SQLException {
-        List<String> valuesOne = Arrays.asList("Jan", "Kowalski");
         accessor.addRowToTable(nonExistingTableName, columnNames, valuesOne);
     }
 
     @Test
     public void selectFromTableTest() {
         createTableAndInsertValuesTest();
-
-        // TODO ResultSet is inaccesible after connection is closed. All info must be copied to a new structure or connection must be kept longer (bad idea..)
-        /*ResultSet resultSet = accessor.selectValuesFromTable(tableName, columnNames);
-
         try {
-            while (resultSet.next()) {
-                System.out.println(resultSet.getInt("id") + " " + resultSet.getString("first_name") + " " + resultSet.getString("last_name"));
-            }
+            List<List<String>> resultsOne = accessor.selectValuesFromTable(tableName, columnNames);
+            assertTrue(resultsOne.get(0).containsAll(valuesOne));
+            assertTrue(resultsOne.get(3).containsAll(valuesFour));
+
+            List<List<String>> resultsTwo = accessor.selectValuesFromTable(tableName, asList("*"));
+            assertTrue(resultsTwo.get(0).containsAll(asList("1", "Jan", "Kowalski")));
+            assertTrue(resultsTwo.get(3).containsAll(asList("4", "Lech", "Kulesza")));
         } catch (SQLException e) {
             e.printStackTrace();
-        }*/
-
+        }
+        System.out.println("KOOPA");
     }
 
 }
