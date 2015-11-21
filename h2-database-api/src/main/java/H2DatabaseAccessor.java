@@ -1,19 +1,12 @@
 import java.sql.*;
 import java.util.List;
 
-import static java.util.Objects.requireNonNull;
-import static org.h2.util.StringUtils.isNullOrEmpty;
-
 /**
  * Provides access to specified database.
  * Requires informations about database name and host/domain, also needs user security credentials (username, password).
  */
 public class H2DatabaseAccessor {
     private static final String ifExistsQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = (?)";
-
-    /**
-     * Class {@link H2DatabaseConnector} is responsible for establishing and validating connection with database.
-     */
     private final H2DatabaseConnector connector;
 
     /**
@@ -25,22 +18,6 @@ public class H2DatabaseAccessor {
      * @throws NullPointerException - when one of given parameters is null or empty
      */
     public H2DatabaseAccessor(String username, String password, String databaseURL) {
-        /*Objects.requireNonNull(username);
-        Objects.requireNonNull(password);
-        Objects.requireNonNull(databaseURL);*/
-
-        // TODO Better error reporting
-        if (isNullOrEmpty(username)) {
-            throw new NullPointerException("username cannot be null");
-        }
-        /*if (isNullOrEmpty(password)) {
-            throw new NullPointerException("password cannot be null");
-        }*/
-        requireNonNull(password);
-        if (isNullOrEmpty(databaseURL)) {
-            throw new NullPointerException("databaseURL cannot be null");
-        }
-
         connector = new H2DatabaseConnector(username, password, String.format("jdbc:h2:%s;IFEXISTS=TRUE;DATABASE_TO_UPPER=false", databaseURL));
     }
 
@@ -54,16 +31,16 @@ public class H2DatabaseAccessor {
      * @param columnNames - list of column names
      * @return boolean value, <code>true</code> if table was created succesfully, <code>false</code> otherwise
      */
-    // TODO Change returned type - it should indicate if table was created or not. Maybe change to void after improving exception handling
-    public boolean addTable(String tableName, List<String> columnNames) {
+    public boolean addTable(String tableName, List<String> columnNames) throws SQLException {
         dropTable(tableName);
 
         boolean result = true;
+        Connection connection = null;
 
         try {
             // Check arguments validity
             if (columnNames.isEmpty()) {
-                throw new Exception("No column names specified");
+                throw new IllegalArgumentException("No column names specified");
             }
 
             // Create query
@@ -78,21 +55,24 @@ public class H2DatabaseAccessor {
                     .append(");");
 
             // Execute query
-            Connection connection = connector.getConnection();
+            connection = connector.getConnection();
             connection.setAutoCommit(false);
             PreparedStatement statement = connection.prepareStatement(queryBuilder.toString());
             statement.executeUpdate();
             statement.close();
 
             connection.commit();
-            connection.close();
         } catch (SQLException e) {
-            /* TODO Need to create sensible exception handling - throw all the way up to GUI? */
-            e.printStackTrace();
             result = false;
-        } catch (Exception e) {
-            e.printStackTrace();
-            result = false;
+            throw e;
+        } finally {
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                throw e;
+            }
         }
         return result;
     }
@@ -102,15 +82,16 @@ public class H2DatabaseAccessor {
      *
      * @param tableName - name of a table
      */
-    public boolean dropTable(String tableName) {
+    public boolean dropTable(String tableName) throws SQLException {
         boolean result = true;
+        Connection connection = null;
 
         try {
             // Create query
             StringBuilder queryBuilder = new StringBuilder("drop table if exists ").append(tableName).append(';');
 
             // Execute query
-            Connection connection = connector.getConnection();
+            connection = connector.getConnection();
             connection.setAutoCommit(false);
 
             PreparedStatement statement = connection.prepareStatement(queryBuilder.toString());
@@ -118,11 +99,18 @@ public class H2DatabaseAccessor {
             statement.close();
 
             connection.commit();
-            connection.close();
         } catch (SQLException e) {
             /* TODO Need to create sensible exception handling - throw all the way up to GUI? */
             e.printStackTrace();
             result = false;
+        } finally {
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                throw e;
+            }
         }
         return result;
     }
@@ -134,23 +122,24 @@ public class H2DatabaseAccessor {
      * @param rowValues
      * @return boolean value, <code>true</code> if row was inserted succesfully, <code>false</code> otherwise
      */
-    // TODO Change returned type - it should indicate if row was inserted or not. Maybe change to void after improving exception handling
-    // TODO check if table exists before doing antything
     public boolean addRowToTable(String tableName, List<String> columnNames, List<String> rowValues) throws SQLException {
         boolean result = true;
+        Connection connection = null;
 
-        checkIfTableExists(tableName);
+        if (!checkIfTableExists(tableName)) {
+            throw new SQLException(String.format("Table %s do not exists in database", tableName));
+        }
 
         try {
             // Check arguments validity
             if (columnNames.isEmpty()) {
-                throw new Exception("No column names specified");
+                throw new IllegalArgumentException("No column names specified");
             }
             if (rowValues.isEmpty()) {
-                throw new Exception("No row values specified");
+                throw new IllegalArgumentException("No row values specified");
             }
             if (rowValues.size() != columnNames.size()) {
-                throw new Exception("Number of values must be equal to number of column names");
+                throw new IllegalArgumentException("Number of values must be equal to number of column names");
             }
 
             // Create query
@@ -172,7 +161,7 @@ public class H2DatabaseAccessor {
                     .append(rowValuesBuilder).append(");");
 
             // Execute query
-            Connection connection = connector.getConnection();
+            connection = connector.getConnection();
             connection.setAutoCommit(false);
             PreparedStatement statement = connection.prepareStatement(queryBuilder.toString());
 
@@ -180,14 +169,17 @@ public class H2DatabaseAccessor {
             statement.close();
 
             connection.commit();
-            connection.close();
         } catch (SQLException e) {
-            /* TODO Need to create sensible exception handling - throw all the way up to GUI? */
-            e.printStackTrace();
             result = false;
-        } catch (Exception e) {
-            e.printStackTrace();
-            result = false;
+            throw e;
+        } finally {
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                throw e;
+            }
         }
 
         return result;
@@ -200,15 +192,18 @@ public class H2DatabaseAccessor {
      * @param columnNames - list of column names
      * @return ResultSet of executed query
      */
-    public ResultSet selectValuesFromTable(String tableName, List<String> columnNames) throws SQLException {
-        ResultSet result = null;
+    public List<List<String>> selectValuesFromTable(String tableName, List<String> columnNames) throws SQLException {
+        List<List<String>> result = null;
+        Connection connection = null;
 
-        checkIfTableExists(tableName);
+        if (!checkIfTableExists(tableName)) {
+            throw new SQLException(String.format("Table %s do not exists in database", tableName));
+        }
 
         try {
             // TODO Column names might be empty strings. Well... fuck it?
             if (columnNames.isEmpty()) {
-                throw new Exception("No column names specified");
+                throw new IllegalArgumentException("No column names specified");
             }
 
             StringBuilder columnNamesBuilder = new StringBuilder();
@@ -221,20 +216,27 @@ public class H2DatabaseAccessor {
 
             queryBuilder.append(columnNamesBuilder).append(" from ").append(tableName).append(';');
 
-            Connection connection = connector.getConnection();
+            connection = connector.getConnection();
             connection.setAutoCommit(false);
             PreparedStatement statement = connection.prepareStatement(queryBuilder.toString());
 
-            result = statement.executeQuery();
+            ResultSet resultSet = statement.executeQuery();
+
+            // TODO Get ze rezultz into da choppa!!!
+
             statement.close();
 
             connection.commit();
-            connection.close();
         } catch (SQLException e) {
-            /* TODO Need to create sensible exception handling - throw all the way up to GUI? */
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
+            throw e;
+        } finally {
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                throw e;
+            }
         }
 
         return result;
@@ -249,44 +251,62 @@ public class H2DatabaseAccessor {
      * @param query - string with a valid SQL query
      * @return ResultSset
      */
-    public ResultSet executeQuery(String query) {
+    public ResultSet executeQuery(String query) throws SQLException {
         ResultSet result = null;
+        Connection connection = null;
 
         try {
-            Connection connection = connector.getConnection();
+            connection = connector.getConnection();
             connection.setAutoCommit(false);
             Statement statement = connection.createStatement();
             result = statement.executeQuery(query);
 
             statement.close();
             connection.commit();
-            connection.close();
         } catch (SQLException e) {
-            /* TODO Need to create sensible exception handling - throw all the way up to GUI? */
-            e.printStackTrace();
+            throw e;
+        } finally {
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                throw e;
+            }
         }
+
         return result;
     }
 
-    // TODO This thing REALLY requires some improvements
-    private void checkIfTableExists(String tableName) throws SQLException {
-        Connection connection = connector.getConnection();
+    /**
+     * Ensures that given table exists in database
+     *
+     * @param tableName - string with a valid SQL query
+     *
+     * @return true if table exists, false otherwise
+     */
+    private boolean checkIfTableExists(String tableName) throws SQLException {
+        Connection connection = null;
+        boolean result = false;
         try {
+            connection = connector.getConnection();
             connection.setAutoCommit(false);
 
             ResultSet tables = connection.getMetaData().getTables(null, null, tableName, null);
-            if (!tables.next()) {
-                throw new SQLException(String.format("Table %s do not exists", tableName));
-            }
-            /*PreparedStatement statement = connection.prepareStatement(ifExistsQuery);
-            statement.setString(1, tableName);
-            statement.executeQuery();
-            statement.close();*/
             connection.commit();
-            connection.close();
+            result = tables.first();
         } catch (SQLException e) {
-            /* TODO Need to create sensible exception handling - throw all the way up to GUI? */
             throw e;
+        } finally {
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                throw e;
+            }
         }
+
+        return result;
     }
 }

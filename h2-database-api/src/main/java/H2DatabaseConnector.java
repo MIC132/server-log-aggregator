@@ -3,6 +3,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import static java.util.Objects.requireNonNull;
+import static org.h2.util.StringUtils.isNullOrEmpty;
 
 /**
  * Class responsible for establishing and validating connection with database.
@@ -23,17 +24,17 @@ public class H2DatabaseConnector {
      * @throws NullPointerException - when one of given parameters is null or empty
      */
     public H2DatabaseConnector(String username, String password, String databaseURL) {
-        requireNonNull(username, "username cannot be null");
-        requireNonNull(password, "password cannot be null");
-        requireNonNull(databaseURL, "databaseURL cannot be null");
+        if (isNullOrEmpty(username)) {
+            throw new NullPointerException("username cannot be null");
+        }
+        requireNonNull(password);
+        if (isNullOrEmpty(databaseURL)) {
+            throw new NullPointerException("databaseURL cannot be null");
+        }
 
         this.username = username;
         this.password = password;
         this.databaseURL = databaseURL;
-
-        /*TODO Add a connection validation?
-        * connection = DriverManager.getConnection(databaseURL, username, password); ?
-        * */
     }
 
     /**
@@ -68,18 +69,18 @@ public class H2DatabaseConnector {
      *
      * @return New instance of <code>Connection</code>
      */
-    public Connection getConnection() {
+    public Connection getConnection() throws SQLException {
         Connection connection;
         try {
             Class.forName(dbDriver);
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException("H2 driver is missing", e);
+            throw new SQLException("H2 driver is missing", e);
         }
 
         try {
             connection = DriverManager.getConnection(databaseURL, username, password);
         } catch (SQLException e) {
-            throw new RuntimeException("Could not open connection to database", e);
+            throw new SQLException("Could not open connection to database", e);
         }
 
         return connection;

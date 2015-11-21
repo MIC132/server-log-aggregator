@@ -16,17 +16,29 @@ public class DatabaseTests {
 
     @Test
     public void createTableTest() {
-        assertTrue(accessor.addTable(tableName, columnNames));
+        try {
+            assertTrue(accessor.addTable(tableName, columnNames));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @Test
     public void dropTableTest() {
-        assertTrue(accessor.dropTable(tableName));
+        try {
+            assertTrue(accessor.dropTable(tableName));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @Test
     public void createTableAndInsertValuesTest() {
-        assertTrue(accessor.addTable(tableName, columnNames));
+        try {
+            assertTrue(accessor.addTable(tableName, columnNames));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
         List<String> valuesOne = Arrays.asList("Jan", "Kowalski");
         List<String> valuesTwo = Arrays.asList("Andrzej", "Nowak");
@@ -46,7 +58,7 @@ public class DatabaseTests {
     @Test(expected = SQLException.class)
     public void nonExistingTableTest() throws SQLException {
         List<String> valuesOne = Arrays.asList("Jan", "Kowalski");
-        assertTrue(accessor.addRowToTable(nonExistingTableName, columnNames, valuesOne));
+        accessor.addRowToTable(nonExistingTableName, columnNames, valuesOne);
     }
 
     @Test
