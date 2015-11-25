@@ -1,5 +1,3 @@
-import org.h2.util.StringUtils;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -11,6 +9,7 @@ import java.util.List;
  */
 public class H2DatabaseAccessor {
     private static final String ifExistsQuery = "select * from INFORMATION_SCHEMA.TABLES where TABLE_NAME = (?)";
+    private static final String insertStatement = "insert into (?) values (";
     private final H2DatabaseConnector connector;
     private static final String primaryKey = "id";
 
@@ -48,9 +47,9 @@ public class H2DatabaseAccessor {
                 throw new IllegalArgumentException("No column names specified");
             }
 
-            // Create query
+            // Create
             StringBuilder columnsBuilder = new StringBuilder();
-            StringBuilder queryBuilder = new StringBuilder("create table ")
+            StringBuilder statementBuilder = new StringBuilder("create table ")
                     .append(tableName)
                     .append(String.format(" (%s int unsigned not null auto_increment, primary key (%s)", primaryKey, primaryKey));
 
@@ -58,13 +57,13 @@ public class H2DatabaseAccessor {
                 columnsBuilder.append(", ").append(columnName).append(" varchar(255) ");
             }
 
-            queryBuilder.append(columnsBuilder)
+            statementBuilder.append(columnsBuilder)
                     .append(");");
 
-            // Execute query
+            // Execute
             connection = connector.getConnection();
             connection.setAutoCommit(false);
-            PreparedStatement statement = connection.prepareStatement(queryBuilder.toString());
+            PreparedStatement statement = connection.prepareStatement(statementBuilder.toString());
             statement.executeUpdate();
             statement.close();
 
@@ -94,14 +93,14 @@ public class H2DatabaseAccessor {
         Connection connection = null;
 
         try {
-            // Create query
-            StringBuilder queryBuilder = new StringBuilder("drop table if exists ").append(tableName).append(';');
+            // Create
+            StringBuilder statementBuilder = new StringBuilder("drop table if exists \"").append(tableName).append("\"");
 
-            // Execute query
+            // Execute
             connection = connector.getConnection();
             connection.setAutoCommit(false);
 
-            PreparedStatement statement = connection.prepareStatement(queryBuilder.toString());
+            PreparedStatement statement = connection.prepareStatement(statementBuilder.toString());
             statement.executeUpdate();
             statement.close();
 
@@ -149,30 +148,82 @@ public class H2DatabaseAccessor {
                 throw new IllegalArgumentException("Number of values must be equal to number of column names");
             }
 
-            // Create query
-            StringBuilder queryBuilder = new StringBuilder("insert into ")
-                    .append(tableName).append(" (");
-            StringBuilder columnNamesBuilder = new StringBuilder();
-            StringBuilder rowValuesBuilder = new StringBuilder();
+            // Create
+            StringBuilder statementBuilder = new StringBuilder("insert into ")
+                    .append(tableName).append(" values (default");
 
-            columnNamesBuilder.append(columnNames.get(0));
-            for (int index = 1; index < columnNames.size(); index++) {
-                columnNamesBuilder.append(", ").append(columnNames.get(index));
+            for (int index = 0; index < rowValues.size(); index++) {
+                statementBuilder.append(", ?");
             }
-
-            rowValuesBuilder.append("\'").append(rowValues.get(0)).append("\'");
-            for (int index = 1; index < rowValues.size(); index++) {
-                rowValuesBuilder.append(", \'").append(rowValues.get(index)).append("\'");
-            }
-            queryBuilder.append(columnNamesBuilder).append(") values (")
-                    .append(rowValuesBuilder).append(");");
-
-            // Execute query
+            statementBuilder.append(");");
+            // Execute
             connection = connector.getConnection();
             connection.setAutoCommit(false);
-            PreparedStatement statement = connection.prepareStatement(queryBuilder.toString());
+            PreparedStatement statement = connection.prepareStatement(statementBuilder.toString());
+            for (int index = 0; index < rowValues.size(); index++) {
+               statement.setString(index + 1, rowValues.get(index));
+            }
 
-            int i = statement.executeUpdate();
+            statement.executeUpdate();
+            statement.close();
+
+            connection.commit();
+        } catch (SQLException e) {
+            result = false;
+            throw e;
+        } finally {
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                throw e;
+            }
+        }
+
+        return result;
+    }
+
+    public boolean addRowsToTable(String tableName, List<String> columnNames, List<List<String>> rowsValues) throws SQLException {
+        boolean result = true;
+        Connection connection = null;
+
+        if (!checkIfTableExists(tableName)) {
+            throw new SQLException(String.format("Table %s do not exists in database", tableName));
+        }
+
+        try {
+            // Check arguments validity
+            if (columnNames.isEmpty()) {
+                throw new IllegalArgumentException("No column names specified");
+            }
+            if (rowsValues.isEmpty()) {
+                throw new IllegalArgumentException("No row values specified");
+            }
+            /*if (rowsValues.size() != columnNames.size()) {
+                throw new IllegalArgumentException("Number of values must be equal to number of column names");
+            }*/
+
+            // Create
+            StringBuilder statementBuilder = new StringBuilder("insert into \"")
+                    .append(tableName).append("\" values (default");
+
+            for (int index = 0; index < rowsValues.get(0).size(); index++) {
+                statementBuilder.append(", ?");
+            }
+            statementBuilder.append(");");
+            // Execute
+            connection = connector.getConnection();
+            connection.setAutoCommit(false);
+            PreparedStatement statement = connection.prepareStatement(statementBuilder.toString());
+            for (List<String> rowValues : rowsValues) {
+                for (int index = 0; index < rowValues.size(); index++) {
+                    statement.setString(index + 1, rowValues.get(index));
+                }
+                statement.addBatch();
+            }
+
+            statement.executeBatch();
             statement.close();
 
             connection.commit();
@@ -214,27 +265,27 @@ public class H2DatabaseAccessor {
             }
 
             StringBuilder columnNamesBuilder = new StringBuilder();
-            StringBuilder queryBuilder = new StringBuilder("select ");
+            StringBuilder statementBuilder = new StringBuilder("select ");
 
-            queryBuilder.append(columnNames.get(0));
+            statementBuilder.append(columnNames.get(0));
             for (int index = 1; index < columnNames.size(); index++) {
                 columnNamesBuilder.append(", ").append(columnNames.get(index));
             }
 
-            queryBuilder.append(columnNamesBuilder).append(" from ").append(tableName).append(';');
+            statementBuilder.append(columnNamesBuilder).append(" from ").append(tableName).append(';');
 
             connection = connector.getConnection();
             connection.setAutoCommit(false);
-            PreparedStatement statement = connection.prepareStatement(queryBuilder.toString());
+            PreparedStatement statement = connection.prepareStatement(statementBuilder.toString());
 
             ResultSet resultSet = statement.executeQuery();
 
             result = new LinkedList<List<String>>();
             int columnsNum = resultSet.getMetaData().getColumnCount();
-            while(resultSet.next()){
+            while (resultSet.next()) {
                 int index = 1;
                 List<String> rowValues = new ArrayList<String>(columnsNum);
-                while(index <= columnsNum) {
+                while (index <= columnsNum) {
                     rowValues.add(resultSet.getString(index));
                     index++;
                 }
@@ -263,22 +314,22 @@ public class H2DatabaseAccessor {
     // TODO Returning a ResultSet is a bad idea. Need better solution
 
     /**
-     * Executes any valid SQL query
+     * Executes any valid SQL statement
      *
-     * @param query - string with a valid SQL query
+     * @param statement - string with a valid SQL statement
      * @return ResultSset
      */
-    public ResultSet executeQuery(String query) throws SQLException {
+    public ResultSet executeQuery(String statement) throws SQLException {
         ResultSet result = null;
         Connection connection = null;
 
         try {
             connection = connector.getConnection();
             connection.setAutoCommit(false);
-            Statement statement = connection.createStatement();
-            result = statement.executeQuery(query);
+            Statement connectionStatement = connection.createStatement();
+            result = connectionStatement.executeQuery(statement);
 
-            statement.close();
+            connectionStatement.close();
             connection.commit();
         } catch (SQLException e) {
             throw e;
@@ -299,7 +350,6 @@ public class H2DatabaseAccessor {
      * Ensures that given table exists in database
      *
      * @param tableName - string with a valid SQL query
-     *
      * @return true if table exists, false otherwise
      */
     private boolean checkIfTableExists(String tableName) throws SQLException {

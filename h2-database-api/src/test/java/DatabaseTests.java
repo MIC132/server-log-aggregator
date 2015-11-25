@@ -1,16 +1,15 @@
 import org.junit.Test;
 
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 
-import static java.util.Arrays.*;
+import static java.util.Arrays.asList;
 import static org.junit.Assert.assertTrue;
 
 public class DatabaseTests {
     private H2DatabaseAccessor accessor = new H2DatabaseAccessor("sa", "", "tcp://localhost/~/test");
 
-    private final String tableName = "people";
+    private final String tableName = "TEST_TABLE";
     private final String nonExistingTableName = "nonExistingTable";
     private final List<String> columnNames = asList("first_name", "last_name");
     private final List<String> primaryKeys = asList("id");
@@ -46,13 +45,26 @@ public class DatabaseTests {
             e.printStackTrace();
         }
 
-
-
         try {
             assertTrue(accessor.addRowToTable(tableName, columnNames, valuesOne));
             assertTrue(accessor.addRowToTable(tableName, columnNames, valuesTwo));
             assertTrue(accessor.addRowToTable(tableName, columnNames, valuesThree));
             assertTrue(accessor.addRowToTable(tableName, columnNames, valuesFour));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void createTableAndInsertValuesTestTwo() {
+        try {
+            assertTrue(accessor.addTable(tableName, columnNames));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            assertTrue(accessor.addRowsToTable(tableName, columnNames, asList(valuesOne, valuesTwo, valuesThree)));
         } catch (SQLException e) {
             e.printStackTrace();
         }
