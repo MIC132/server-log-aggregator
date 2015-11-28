@@ -15,22 +15,17 @@ public class FtpLogDownloader extends LogDownloader implements AutoCloseable{
     final String user;
     final String password;
 
-    public FtpLogDownloader(String address, int port, String user, String password) {
+    public FtpLogDownloader(String address, int port, String user, String password) throws IOException {
         this.server = address;
         this.port = port;
         this.user = user;
         this.password = password;
 
         ftpClient = new FTPClient();
-        try{
-            ftpClient.connect(server, port);
-            ftpClient.login(user,password);
-            ftpClient.enterLocalPassiveMode();
-            ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
-        } catch (IOException e) {
-            System.out.println("Error: " + e.getMessage());
-            e.printStackTrace();
-        }
+        ftpClient.connect(server, port);
+        ftpClient.login(user,password);
+        ftpClient.enterLocalPassiveMode();
+        ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
     }
 
     public void downloadToFile(String path, File file) throws IOException {
