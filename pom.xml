@@ -6,6 +6,7 @@
 
     <groupId>com.agh</groupId>
     <artifactId>server-log-aggregator</artifactId>
+    <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
     <build>
         <plugins>
@@ -29,5 +30,9 @@
     </dependencies>
 
 
+    <modules>
+        <module>h2-database-api</module>
+        <module>utils</module>
+    </modules>
 
 </project>
