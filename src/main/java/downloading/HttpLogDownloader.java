@@ -14,16 +14,20 @@ import java.nio.channels.ReadableByteChannel;
  */
 public class HttpLogDownloader extends LogDownloader{
 
-    public static void downloadToFile(String address, File file) throws IOException {
-        downloadStandard(address, file);
+    public HttpLogDownloader(){
+        super(Source.Type.HTTP);
     }
 
-    private static void downloadCommonsIO(String address, File file) throws IOException{
+    public void downloadToFile(String address, File file) throws IOException {
+        downloadCommonsIO(address, file);
+    }
+
+    private void downloadCommonsIO(String address, File file) throws IOException{
         URL url = new URL(address);
         FileUtils.copyURLToFile(url, file);
     }
 
-    private static void downloadStandard(String address, File file) throws IOException{
+    private void downloadStandard(String address, File file) throws IOException{
         URL website = new URL(address);
         ReadableByteChannel rbc = Channels.newChannel(website.openStream());
         FileOutputStream fos = new FileOutputStream(file);

@@ -16,6 +16,7 @@ public class FtpLogDownloader extends LogDownloader implements AutoCloseable{
     final String password;
 
     public FtpLogDownloader(String address, int port, String user, String password) throws IOException {
+        super(Source.Type.FTP);
         this.server = address;
         this.port = port;
         this.user = user;

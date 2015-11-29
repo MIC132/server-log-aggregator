@@ -7,7 +7,7 @@ import java.io.*;
 /**
  * Created by MIC on 2015-11-28.
  */
-public class SshLogDownloader implements AutoCloseable{
+public class SshLogDownloader extends LogDownloader implements AutoCloseable{
     final int port;
     final String address;
     final String user;
@@ -18,6 +18,7 @@ public class SshLogDownloader implements AutoCloseable{
     final ChannelSftp channelSftp;
 
     public SshLogDownloader(String address, int port, String user, String password) throws JSchException {
+        super(Source.Type.SSH);
         this.address = address;
         this.port = port;
         this.user = user;
