@@ -1,5 +1,7 @@
 package downloading;
 
+import util.Splitter;
+
 /**
  * Created by MIC on 2015-11-28.
  */
@@ -14,6 +16,7 @@ public abstract class Source {
     final String path; //For http we will simply append address + path
     final String namePattern;
     final String splitPattern;
+    final Splitter splitter;
 
     public Source(Type type, String name, String address, String path, String namePattern, String splitPattern) {
         this.type = type;
@@ -22,5 +25,6 @@ public abstract class Source {
         this.path = path;
         this.namePattern = namePattern;
         this.splitPattern = splitPattern;
+        this.splitter = new Splitter(splitPattern);
     }
 }
