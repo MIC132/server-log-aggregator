@@ -9,8 +9,16 @@ import java.util.regex.Pattern;
  * Created by MIC on 2015-11-22.
  */
 public class Splitter {
-    public static List<String> splitByGroups(String string, String regex){
-        Matcher m = Pattern.compile(regex).matcher(string);
+    final String pattern;
+    final Pattern compiled;
+
+    public Splitter(String pattern){
+        this.pattern = pattern;
+        this.compiled = Pattern.compile(pattern);
+    }
+
+    public List<String> splitByGroups(String string){
+        Matcher m = compiled.matcher(string);
         List<String> out = new ArrayList<String>();
         if(m.find()){
             for(int i = 1; i <= m.groupCount(); i++){
