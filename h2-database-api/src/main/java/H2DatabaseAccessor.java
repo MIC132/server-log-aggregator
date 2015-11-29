@@ -49,9 +49,9 @@ public class H2DatabaseAccessor {
 
             // Create
             StringBuilder columnsBuilder = new StringBuilder();
-            StringBuilder statementBuilder = new StringBuilder("create table ")
+            StringBuilder statementBuilder = new StringBuilder("create table \"")
                     .append(tableName)
-                    .append(String.format(" (%s int unsigned not null auto_increment, primary key (%s)", primaryKey, primaryKey));
+                    .append(String.format("\" (%s int unsigned not null auto_increment, primary key (%s)", primaryKey, primaryKey));
 
             for (String columnName : columnNames) {
                 columnsBuilder.append(", ").append(columnName).append(" varchar(255) ");
@@ -106,9 +106,8 @@ public class H2DatabaseAccessor {
 
             connection.commit();
         } catch (SQLException e) {
-            /* TODO Need to create sensible exception handling - throw all the way up to GUI? */
-            e.printStackTrace();
             result = false;
+            throw e;
         } finally {
             try {
                 if (connection != null) {
@@ -149,8 +148,8 @@ public class H2DatabaseAccessor {
             }
 
             // Create
-            StringBuilder statementBuilder = new StringBuilder("insert into ")
-                    .append(tableName).append(" values (default");
+            StringBuilder statementBuilder = new StringBuilder("insert into \"")
+                    .append(tableName).append("\" values (default");
 
             for (int index = 0; index < rowValues.size(); index++) {
                 statementBuilder.append(", ?");
@@ -161,7 +160,7 @@ public class H2DatabaseAccessor {
             connection.setAutoCommit(false);
             PreparedStatement statement = connection.prepareStatement(statementBuilder.toString());
             for (int index = 0; index < rowValues.size(); index++) {
-               statement.setString(index + 1, rowValues.get(index));
+                statement.setString(index + 1, rowValues.get(index));
             }
 
             statement.executeUpdate();
@@ -259,7 +258,6 @@ public class H2DatabaseAccessor {
         }
 
         try {
-            // TODO Column names might be empty strings. Well... fuck it?
             if (columnNames.isEmpty()) {
                 throw new IllegalArgumentException("No column names specified");
             }
@@ -349,7 +347,7 @@ public class H2DatabaseAccessor {
     /**
      * Ensures that given table exists in database
      *
-     * @param tableName - string with a valid SQL query
+     * @param tableName - name of the table
      * @return true if table exists, false otherwise
      */
     private boolean checkIfTableExists(String tableName) throws SQLException {
