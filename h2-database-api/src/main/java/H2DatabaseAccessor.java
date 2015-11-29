@@ -199,9 +199,6 @@ public class H2DatabaseAccessor {
             if (rowsValues.isEmpty()) {
                 throw new IllegalArgumentException("No row values specified");
             }
-            /*if (rowsValues.size() != columnNames.size()) {
-                throw new IllegalArgumentException("Number of values must be equal to number of column names");
-            }*/
 
             // Create
             StringBuilder statementBuilder = new StringBuilder("insert into \"")
@@ -342,6 +339,39 @@ public class H2DatabaseAccessor {
         }
 
         return result;
+    }
+
+    /**
+     * Returns a list of column names
+     *
+     * @param tableName - name of the table
+     * @return list of column names
+     */
+    public List<String> getColumnNames(String tableName) throws SQLException {
+        List<String> columnNames = new LinkedList<>();
+        Connection connection = null;
+        try {
+            connection = connector.getConnection();
+            connection.setAutoCommit(false);
+
+            ResultSet columns = connection.getMetaData().getColumns(null, null, tableName, null);
+            connection.commit();
+            while(columns.next()) {
+                columnNames.add(columns.getString("COLUMN_NAME"));
+            }
+        } catch (SQLException e) {
+            throw e;
+        } finally {
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                throw e;
+            }
+        }
+
+        return columnNames;
     }
 
     /**

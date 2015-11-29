@@ -13,8 +13,9 @@ public class DatabaseTests {
     private static final String TABLE_NAME_LOWER_CASE = "test_table";
     private static final String TABLE_NAME_MIXED_CASE = "Test_Table";
     private static final String NON_EXISTING_TABLE_NAME = "nonExistingTable";
-    private final List<String> columnNames = asList("first_name", "last_name");
-    private final List<String> primaryKeys = asList("id");
+    private final List<String> allColumnNames = asList("ID", "FIRST_NAME", "LAST_NAME");
+    private final List<String> columnNames = asList("FIRST_NAME", "LAST_NAME");
+    private final List<String> primaryKeys = asList("ID");
 
     private final List<String> valuesOne = asList("Jan", "Kowalski");
     private final List<String> valuesTwo = asList("Andrzej", "Nowak");
@@ -124,6 +125,17 @@ public class DatabaseTests {
             List<List<String>> resultsTwo = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, asList("*"));
             assertTrue(resultsTwo.get(0).containsAll(asList("1", "Jan", "Kowalski")));
             assertTrue(resultsTwo.get(3).containsAll(asList("4", "Lech", "Kulesza")));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void getColumnNames() {
+        createTableAndInsertValuesTest();
+        try {
+            List<String> result = accessor.getColumnNames(TABLE_NAME_UPPER_CASE);
+            assertTrue(result.containsAll(allColumnNames));
         } catch (SQLException e) {
             e.printStackTrace();
         }
