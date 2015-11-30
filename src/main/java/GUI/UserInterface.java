@@ -1,9 +1,13 @@
 package GUI;
 import javafx.application.Application;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.TableView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import jfxtras.scene.control.LocalTimeTextField;
@@ -11,6 +15,9 @@ import jfxtras.scene.control.LocalTimeTextField;
 import java.util.ArrayList;
 
 public class UserInterface extends Application {
+    final TableView table = new TableView();
+    TabPane root = new TabPane();
+
     Tab createConfigurationTab(){
         ArrayList<Node> labels = new ArrayList<>();
         ArrayList<Node> fields = new ArrayList<>();
@@ -47,6 +54,23 @@ public class UserInterface extends Application {
         LocalTimeTextField endTimeTextField = new LocalTimeTextField();     //still not working properly
 
         /**
+         * Button!
+         */
+        Button submitButton = new Button();
+        submitButton.setText("Pobierz");
+        submitButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                try {
+                    root.getTabs().remove(1);
+                }
+                catch(IndexOutOfBoundsException a) {}
+                table.getColumns().clear();
+                root.getTabs().add(createBrowsingTab(3));
+            }
+        });
+
+        /**
          * This part allows us to add created labels to columns, managing their order
          */
         labels.add(urlLabel);
@@ -68,6 +92,7 @@ public class UserInterface extends Application {
         fields.add(startTimeTextField);
         fields.add(endDatePicker);
         fields.add(endTimeTextField);
+        fields.add(submitButton);
 
         /**
          * Padding of columns, their order and name of tab
@@ -92,13 +117,27 @@ public class UserInterface extends Application {
         return configurationTab;
     }
 
-    Tab createBrowsingTab(){
+    Tab createBrowsingTab(int numberOfColumns){
+        TableColumn firstColumn = new TableColumn("ID");
+        table.getColumns().add(firstColumn);
 
-        TableView table = new TableView();
+        TableColumn secondColumn;
+        for(int i = 0; i < numberOfColumns; i++) {
+            secondColumn = new TableColumn("Data");
+            table.getColumns().add(secondColumn);
+        }
+
+        Button first = new Button("|<");
+        Button previous = new Button("<");
+        Button next = new Button(">");
+        Button last = new Button(">|");
 
         HBox browsingButtons = new HBox();
+        browsingButtons.setAlignment(Pos.CENTER);
+        browsingButtons.getChildren().addAll(first,previous, next, last);
 
         VBox browsingTabContent = new VBox();
+        browsingTabContent.getChildren().addAll(table, browsingButtons);
 
         Tab browsingTab = new Tab();
         browsingTab.setText("Browse");
@@ -110,11 +149,12 @@ public class UserInterface extends Application {
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Log Aggregator");
-        TabPane root = new TabPane();
 
         Tab configurationTab = createConfigurationTab();
+//        Tab browsingTab = createBrowsingTab(1);
 
         root.getTabs().add(configurationTab);
+//        root.getTabs().add(browsingTab);
 
         primaryStage.setScene(new Scene(root, 400, 400));
         primaryStage.show();
