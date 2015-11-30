@@ -53,6 +53,20 @@ public class UserInterface extends Application {
         Label endTimeLabel = new Label("End time:");
         LocalTimeTextField endTimeTextField = new LocalTimeTextField();     //still not working properly
 
+        Button submitButton = new Button();
+        submitButton.setText("Pobierz");
+        submitButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                try {
+                    root.getTabs().remove(1);
+                }
+                catch(IndexOutOfBoundsException a) {}
+                table.getColumns().clear();
+                root.getTabs().add(createBrowsingTab(3));
+            }
+        });
+
         /**
          * Button!
          */
