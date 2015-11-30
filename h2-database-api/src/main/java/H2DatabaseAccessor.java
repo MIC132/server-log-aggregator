@@ -1,7 +1,6 @@
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * Provides access to specified database.
@@ -240,13 +239,17 @@ public class H2DatabaseAccessor {
     }
 
     /**
-     * Executes a SELECT query on specified table with given list of columns as parameters
+     * Executes a SELECT query on specified table with given list of columns as parameters.
      *
      * @param tableName   - name of table
      * @param columnNames - list of column names
+     * @param columnRegexMap- contains pairs of column name (key) and associated regex (value).
      * @return ResultSet of executed query
      */
-    public List<List<String>> selectValuesFromTable(String tableName, List<String> columnNames) throws SQLException {
+    /* TODO Allow user to specify multiple regexes for one column?
+     Map requires that keys are unique. In this situation the only way to specify multiple regexes is to use alternative operator (|) in regex.
+     Should we implement other solution? More user-friendly? */
+    public List<List<String>> selectValuesFromTable(String tableName, List<String> columnNames, Map<String, String> columnRegexMap) throws SQLException {
         List<List<String>> result = null;
         Connection connection = null;
 
@@ -267,7 +270,22 @@ public class H2DatabaseAccessor {
                 columnNamesBuilder.append(", ").append(columnNames.get(index));
             }
 
-            statementBuilder.append(columnNamesBuilder).append(" from ").append(tableName).append(';');
+            statementBuilder.append(columnNamesBuilder).append(" from ").append(tableName);
+
+            if (columnRegexMap != null && !columnRegexMap.isEmpty()) {
+                statementBuilder.append(" where ");
+                Set<Entry<String, String>> entries = columnRegexMap.entrySet();
+                Iterator<Entry<String, String>> iterator = entries.iterator();
+                Entry<String, String> entry = iterator.next();
+                statementBuilder.append(entry.getKey()).append(" regexp \'").append(entry.getValue()).append('\'');
+
+                while(iterator.hasNext()) {
+                    entry = iterator.next();
+                    statementBuilder.append(" AND ").append(entry.getKey()).append(" regexp \'").append(entry.getValue()).append('\'');
+                }
+            }
+
+            statementBuilder.append(';');
 
             connection = connector.getConnection();
             connection.setAutoCommit(false);
