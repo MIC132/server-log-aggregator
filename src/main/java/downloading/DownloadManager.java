@@ -45,8 +45,8 @@ public class DownloadManager {
         List<List<String>> out = new ArrayList<>();
         while (currentTime.isBefore(end)){
             try {
-                String path = source.path + source.namePattern + currentTime.format(formatter);
-                File target = new File(targetPath + source.namePattern + currentTime.format(formatter));
+                String path = source.path + source.namePattern + currentTime.format(formatter) + ".log";
+                File target = new File(targetPath + source.namePattern + currentTime.format(formatter) + ".log");
                 if (downloader.type == Source.Type.HTTP) {
                     HttpLogDownloader httpDownloader = (HttpLogDownloader) downloader;
                     httpDownloader.downloadToFile(source.address + path, target);
