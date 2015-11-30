@@ -1,6 +1,7 @@
 import org.junit.Test;
 
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
 
 import static java.util.Arrays.asList;
@@ -13,13 +14,18 @@ public class DatabaseTests {
     private static final String TABLE_NAME_LOWER_CASE = "test_table";
     private static final String TABLE_NAME_MIXED_CASE = "Test_Table";
     private static final String NON_EXISTING_TABLE_NAME = "nonExistingTable";
-    private final List<String> columnNames = asList("first_name", "last_name");
-    private final List<String> primaryKeys = asList("id");
+    private final List<String> allColumnNames = asList("ID", "FIRST_NAME", "LAST_NAME");
+    private final List<String> columnNames = asList("FIRST_NAME", "LAST_NAME");
+    private final List<String> primaryKeys = asList("ID");
 
     private final List<String> valuesOne = asList("Jan", "Kowalski");
     private final List<String> valuesTwo = asList("Andrzej", "Nowak");
-    private final List<String> valuesThree = asList("Roman", "Chrobry");
-    private final List<String> valuesFour = asList("Lech", "Kulesza");
+    private final List<String> valuesThree = asList("Roman", "Kaskader");
+    private final List<String> valuesFour = asList("Jaroslaw", "Kulesza");
+
+    private final List<String> returnOne = asList("1", "Jan", "Kowalski");
+    private final List<String> returnTwo = asList("3", "Roman", "Kaskader");
+    private final List<String> returnThree = asList("4", "Jaroslaw", "Kulesza");
 
     @Test
     public void createTableTest() {
@@ -117,13 +123,45 @@ public class DatabaseTests {
     public void selectFromTableTest() {
         createTableAndInsertValuesTest();
         try {
-            List<List<String>> resultsOne = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, columnNames);
+            List<List<String>> resultsOne = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, columnNames, null);
             assertTrue(resultsOne.get(0).containsAll(valuesOne));
             assertTrue(resultsOne.get(3).containsAll(valuesFour));
 
-            List<List<String>> resultsTwo = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, asList("*"));
-            assertTrue(resultsTwo.get(0).containsAll(asList("1", "Jan", "Kowalski")));
-            assertTrue(resultsTwo.get(3).containsAll(asList("4", "Lech", "Kulesza")));
+            List<List<String>> resultsTwo = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, asList("*"), null);
+            assertTrue(resultsTwo.get(0).containsAll(resultsOne));
+            assertTrue(resultsTwo.get(3).containsAll(returnThree));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void selectFromTableWithRegexTest() {
+        createTableAndInsertValuesTest();
+        try {
+            HashMap<String, String> regexMap = new HashMap<>(2);
+            regexMap.put("first_name", "^J.*$");
+            regexMap.put("last_name", "^K.*$");
+            List<List<String>> resultsOne = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, asList("*"), regexMap);
+            assertTrue(resultsOne.get(0).containsAll(returnOne));
+            assertTrue(resultsOne.get(1).containsAll(returnThree));
+
+            regexMap.put("first_name", "^(J|R).*$");
+            List<List<String>> resultsTwo = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, asList("*"), regexMap);
+            assertTrue(resultsTwo.get(0).containsAll(returnOne));
+            assertTrue(resultsTwo.get(1).containsAll(returnTwo));
+            assertTrue(resultsTwo.get(2).containsAll(returnThree));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void getColumnNames() {
+        createTableAndInsertValuesTest();
+        try {
+            List<String> result = accessor.getColumnNames(TABLE_NAME_UPPER_CASE);
+            assertTrue(result.containsAll(allColumnNames));
         } catch (SQLException e) {
             e.printStackTrace();
         }
