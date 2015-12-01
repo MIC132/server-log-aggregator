@@ -128,7 +128,7 @@ public class DatabaseTests {
             assertTrue(resultsOne.get(3).containsAll(valuesFour));
 
             List<List<String>> resultsTwo = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, asList("*"), null);
-            assertTrue(resultsTwo.get(0).containsAll(resultsOne));
+            assertTrue(resultsTwo.get(0).containsAll(returnOne));
             assertTrue(resultsTwo.get(3).containsAll(returnThree));
         } catch (SQLException e) {
             e.printStackTrace();
@@ -151,6 +151,24 @@ public class DatabaseTests {
             assertTrue(resultsTwo.get(0).containsAll(returnOne));
             assertTrue(resultsTwo.get(1).containsAll(returnTwo));
             assertTrue(resultsTwo.get(2).containsAll(returnThree));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void countFromTableWithRegexTest() {
+        createTableAndInsertValuesTest();
+        try {
+            HashMap<String, String> regexMap = new HashMap<>(2);
+            regexMap.put("first_name", "^J.*$");
+            regexMap.put("last_name", "^K.*$");
+            int resultsOne = accessor.countValuesFromTable(TABLE_NAME_UPPER_CASE, regexMap);
+            assertTrue(resultsOne == 2);
+
+            regexMap.put("first_name", "^(J|R).*$");
+            int resultsTwo = accessor.countValuesFromTable(TABLE_NAME_UPPER_CASE, regexMap);
+            assertTrue(resultsTwo == 3);
         } catch (SQLException e) {
             e.printStackTrace();
         }
