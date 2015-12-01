@@ -37,15 +37,6 @@ public class DatabaseTests {
     }
 
     @Test
-    public void dropTableTest() {
-        try {
-            assertTrue(accessor.dropTable(TABLE_NAME_UPPER_CASE));
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Test
     public void createTableAndInsertValuesUpperCaseTest() {
         try {
             assertTrue(accessor.addTable(TABLE_NAME_UPPER_CASE, columnNames));

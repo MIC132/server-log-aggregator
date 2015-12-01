@@ -1,4 +1,7 @@
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -13,7 +16,7 @@ public class H2DatabaseAccessor {
 
     private static final String DROP_TABLE_STATEMENT = "drop table if exists \"%s\";";
 
-    private static final String INSERT_INTO_STATEMENT =  "insert into \"%s\" values (default ";
+    private static final String INSERT_INTO_STATEMENT = "insert into \"%s\" values (default ";
 
     private static final String ESCAPE_CHARACTER_REGEX = "[\\n\\r\\t\\']";
 
@@ -45,21 +48,22 @@ public class H2DatabaseAccessor {
         boolean result = true;
         Connection connection = null;
 
+        // Check if user passed any column names
+        if (columnNames.isEmpty()) {
+            throw new IllegalArgumentException("No column names specified");
+        }
+
+        // Create SQL statement
+        StringBuilder statementBuilder = new StringBuilder(String.format(CREATE_TABLE_STATEMENT, tableName.replaceAll(ESCAPE_CHARACTER_REGEX, "")));
+
+        for (String columnName : columnNames) {
+            statementBuilder.append(String.format(CREATE_TABLE_COLUMN, columnName.replaceAll(ESCAPE_CHARACTER_REGEX, "")));
+        }
+
+        statementBuilder.append(");");
+
+
         try {
-            // Check if user passed any column names
-            if (columnNames.isEmpty()) {
-                throw new IllegalArgumentException("No column names specified");
-            }
-
-            // Create string with parametrized SQL statement - it will be used in PreparedStatement
-            StringBuilder statementBuilder = new StringBuilder(String.format(CREATE_TABLE_STATEMENT, tableName.replaceAll(ESCAPE_CHARACTER_REGEX, "")));
-
-            for (String columnName : columnNames) {
-                statementBuilder.append(String.format(CREATE_TABLE_COLUMN, columnName.replaceAll(ESCAPE_CHARACTER_REGEX, "")));
-            }
-
-            statementBuilder.append(");");
-
             // Create PreparedStatement and insert parameters
             connection = m_connector.getConnection();
             connection.setAutoCommit(false);
@@ -89,14 +93,13 @@ public class H2DatabaseAccessor {
      *
      * @param tableName - name of a table
      */
-    public boolean dropTable(String tableName) throws SQLException {
-        boolean result = true;
+    public void dropTable(String tableName) throws SQLException {
         Connection connection = null;
 
-        try {
-            // Create
-            StringBuilder statementBuilder = new StringBuilder(String.format(DROP_TABLE_STATEMENT, tableName.replaceAll(ESCAPE_CHARACTER_REGEX, "")));
+        // Create SQL statement
+        StringBuilder statementBuilder = new StringBuilder(String.format(DROP_TABLE_STATEMENT, tableName.replaceAll(ESCAPE_CHARACTER_REGEX, "")));
 
+        try {
             // Execute
             connection = m_connector.getConnection();
             connection.setAutoCommit(false);
@@ -107,7 +110,6 @@ public class H2DatabaseAccessor {
 
             connection.commit();
         } catch (SQLException e) {
-            result = false;
             throw e;
         } finally {
             try {
@@ -118,14 +120,13 @@ public class H2DatabaseAccessor {
                 throw e;
             }
         }
-        return result;
     }
 
     /**
      * Adds a new row to specified table.
      *
      * @param columnNames - list of column names in table (except default primary key ID)
-     * @param rowsValues - list of list with values of each new row in table
+     * @param rowsValues  - list of list with values of each new row in table
      * @return boolean value, <code>true</code> if row was inserted succesfully, <code>false</code> otherwise
      */
     public boolean addRowsToTable(String tableName, List<String> columnNames, List<List<String>> rowsValues) throws SQLException {
@@ -136,22 +137,23 @@ public class H2DatabaseAccessor {
             throw new SQLException(String.format("Table %s do not exists in database", tableName));
         }
 
+        // Check arguments validity
+        if (columnNames.isEmpty()) {
+            throw new IllegalArgumentException("No column names specified");
+        }
+        if (rowsValues.isEmpty()) {
+            throw new IllegalArgumentException("No row values specified");
+        }
+
+        // Create string with SQL statement
+        StringBuilder statementBuilder = new StringBuilder(String.format(INSERT_INTO_STATEMENT, tableName.replaceAll(ESCAPE_CHARACTER_REGEX, "")));
+
+        for (int index = 0; index < rowsValues.get(0).size(); index++) {
+            statementBuilder.append(", ?");
+        }
+        statementBuilder.append(");");
+
         try {
-            // Check arguments validity
-            if (columnNames.isEmpty()) {
-                throw new IllegalArgumentException("No column names specified");
-            }
-            if (rowsValues.isEmpty()) {
-                throw new IllegalArgumentException("No row values specified");
-            }
-
-            // Create string with SQL statement
-            StringBuilder statementBuilder = new StringBuilder(String.format(INSERT_INTO_STATEMENT,tableName.replaceAll(ESCAPE_CHARACTER_REGEX, "")));
-
-            for (int index = 0; index < rowsValues.get(0).size(); index++) {
-                statementBuilder.append(", ?");
-            }
-            statementBuilder.append(");");
             // Execute
             connection = m_connector.getConnection();
             connection.setAutoCommit(false);
@@ -186,62 +188,39 @@ public class H2DatabaseAccessor {
     /**
      * Executes a SELECT query on specified table with given list of columns as parameters. Optionally user can specify regular expression for some of the columns
      *
-     * @param tableName   - name of table
-     * @param columnNames - list of column names
+     * @param tableName       - name of table
+     * @param columnNames     - list of column names
      * @param columnRegexMap- contains pairs of column name (key) and associated regex (value).
      * @return ResultSet of executed query
      */
-    // TODO selectValuesFromTable and countValuesFromTable are very similar pieces of code consider refactoring
     public List<List<String>> selectValuesFromTable(String tableName, List<String> columnNames, Map<String, String> columnRegexMap) throws SQLException {
         List<List<String>> result = null;
         Connection connection = null;
 
+        // Check arguments validity
         if (!checkIfTableExists(tableName)) {
             throw new SQLException(String.format("Table %s do not exists in database", tableName));
         }
+        if (columnNames.isEmpty()) {
+            throw new IllegalArgumentException("No column names specified");
+        }
+
+        // Create string with SQL statement
+        StringBuilder statementBuilder = new StringBuilder("select ");
+        statementBuilder.append(columnNames.get(0).replaceAll(ESCAPE_CHARACTER_REGEX, ""));
+        for (int i = 1; i < columnNames.size(); i++) {
+            statementBuilder.append(", ")
+                    .append(columnNames.get(i).replaceAll(ESCAPE_CHARACTER_REGEX, ""));
+        }
+        statementBuilder.append(" from ").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, ""));
+        addRegexexToStatement(statementBuilder, columnRegexMap);
 
         try {
-            if (columnNames.isEmpty()) {
-                throw new IllegalArgumentException("No column names specified");
-            }
-
-            StringBuilder statementBuilder = new StringBuilder("select ");
-
-            statementBuilder.append(columnNames.get(0).replaceAll(ESCAPE_CHARACTER_REGEX, ""));
-            for (int i = 1; i < columnNames.size(); i++) {
-                statementBuilder.append(", ")
-                        .append(columnNames.get(i).replaceAll(ESCAPE_CHARACTER_REGEX, ""));
-            }
-
-            statementBuilder.append(" from ").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, ""));
-
-            if (columnRegexMap != null && !columnRegexMap.isEmpty()) {
-                statementBuilder.append(" where ");
-                Set<Entry<String, String>> entries = columnRegexMap.entrySet();
-                Iterator<Entry<String, String>> iterator = entries.iterator();
-                Entry<String, String> entry = iterator.next();
-                statementBuilder.append(entry.getKey().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
-                        .append(" regexp \'")
-                        .append(entry.getValue().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
-                        .append('\'');
-
-                while(iterator.hasNext()) {
-                    entry = iterator.next();
-                    statementBuilder.append(" and ")
-                            .append(entry.getKey().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
-                            .append(" regexp \'")
-                            .append(entry.getValue().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
-                            .append('\'');
-                }
-            }
-
-            statementBuilder.append(';');
-
+            // Execute
             connection = m_connector.getConnection();
             connection.setAutoCommit(false);
             PreparedStatement statement = connection.prepareStatement(statementBuilder.toString());
             ResultSet resultSet = statement.executeQuery();
-
             result = new LinkedList<List<String>>();
             int columnsNum = resultSet.getMetaData().getColumnCount();
             while (resultSet.next()) {
@@ -253,9 +232,7 @@ public class H2DatabaseAccessor {
                 }
                 result.add(rowValues);
             }
-
             statement.close();
-
             connection.commit();
         } catch (SQLException e) {
             throw e;
@@ -268,14 +245,13 @@ public class H2DatabaseAccessor {
                 throw e;
             }
         }
-
         return result;
     }
 
     /**
      * Executes a SELECT COUNT(*) query on specified table. Optionally user can specify regular expression for some of the columns
      *
-     * @param tableName   - name of table
+     * @param tableName       - name of table
      * @param columnRegexMap- contains pairs of column name (key) and associated regex (value).
      * @return ResultSet of executed query
      */
@@ -283,44 +259,23 @@ public class H2DatabaseAccessor {
         Integer result = null;
         Connection connection = null;
 
+        // Check arguments validity
         if (!checkIfTableExists(tableName)) {
             throw new SQLException(String.format("Table %s do not exists in database", tableName));
         }
 
+        // Create string with SQL statement
+        StringBuilder statementBuilder = new StringBuilder("select count(*) from ").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, ""));
+        addRegexexToStatement(statementBuilder, columnRegexMap);
+
         try {
-            StringBuilder statementBuilder = new StringBuilder("select count(*) from ").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, ""));
-
-            if (columnRegexMap != null && !columnRegexMap.isEmpty()) {
-                statementBuilder.append(" where ");
-                Set<Entry<String, String>> entries = columnRegexMap.entrySet();
-                Iterator<Entry<String, String>> iterator = entries.iterator();
-                Entry<String, String> entry = iterator.next();
-                statementBuilder.append(entry.getKey().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
-                        .append(" regexp \'")
-                        .append(entry.getValue().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
-                        .append('\'');
-
-                while(iterator.hasNext()) {
-                    entry = iterator.next();
-                    statementBuilder.append(" and ")
-                            .append(entry.getKey().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
-                            .append(" regexp \'")
-                            .append(entry.getValue().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
-                            .append('\'');
-                }
-            }
-
-            statementBuilder.append(';');
-
             connection = m_connector.getConnection();
             connection.setAutoCommit(false);
             PreparedStatement statement = connection.prepareStatement(statementBuilder.toString());
-
             ResultSet resultSet = statement.executeQuery();
             resultSet.next();
             result = Integer.parseInt(resultSet.getString("COUNT(*)"));
             statement.close();
-
             connection.commit();
         } catch (SQLException e) {
             throw e;
@@ -333,7 +288,6 @@ public class H2DatabaseAccessor {
                 throw e;
             }
         }
-
         return result;
     }
 
@@ -352,7 +306,7 @@ public class H2DatabaseAccessor {
 
             ResultSet columns = connection.getMetaData().getColumns(null, null, tableName, null);
             connection.commit();
-            while(columns.next()) {
+            while (columns.next()) {
                 columnNames.add(columns.getString("COLUMN_NAME"));
             }
         } catch (SQLException e) {
@@ -399,5 +353,36 @@ public class H2DatabaseAccessor {
         }
 
         return result;
+    }
+
+    /**
+     * Adds columns regexes to SELECT query. This metod is used to avoid ode duplication
+     *
+     * @param statementBuilder - reference to StringBuilder used to create statement
+     * @param columnRegexMap- contains pairs of column name (key) and associated regex (value).
+     * @return true if table exists, false otherwise
+     */
+    private void addRegexexToStatement(StringBuilder statementBuilder, Map<String, String> columnRegexMap) {
+        if (columnRegexMap != null && !columnRegexMap.isEmpty()) {
+            statementBuilder.append(" where ");
+            Set<Entry<String, String>> entries = columnRegexMap.entrySet();
+            Iterator<Entry<String, String>> iterator = entries.iterator();
+            Entry<String, String> entry = iterator.next();
+            statementBuilder.append(entry.getKey().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+                    .append(" regexp \'")
+                    .append(entry.getValue().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+                    .append('\'');
+
+            while (iterator.hasNext()) {
+                entry = iterator.next();
+                statementBuilder.append(" and ")
+                        .append(entry.getKey().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+                        .append(" regexp \'")
+                        .append(entry.getValue().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+                        .append('\'');
+            }
+        }
+
+        statementBuilder.append(';');
     }
 }
