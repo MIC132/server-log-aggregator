@@ -46,7 +46,7 @@ public class DatabaseTests {
     }
 
     @Test
-    public void createTableAndInsertValuesTest() {
+    public void createTableAndInsertValuesUpperCaseTest() {
         try {
             assertTrue(accessor.addTable(TABLE_NAME_UPPER_CASE, columnNames));
         } catch (SQLException e) {
@@ -54,10 +54,7 @@ public class DatabaseTests {
         }
 
         try {
-            assertTrue(accessor.addRowToTable(TABLE_NAME_UPPER_CASE, columnNames, valuesOne));
-            assertTrue(accessor.addRowToTable(TABLE_NAME_UPPER_CASE, columnNames, valuesTwo));
-            assertTrue(accessor.addRowToTable(TABLE_NAME_UPPER_CASE, columnNames, valuesThree));
-            assertTrue(accessor.addRowToTable(TABLE_NAME_UPPER_CASE, columnNames, valuesFour));
+            assertTrue(accessor.addRowsToTable(TABLE_NAME_UPPER_CASE, columnNames, asList(valuesOne, valuesTwo, valuesThree, valuesFour)));
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -72,10 +69,7 @@ public class DatabaseTests {
         }
 
         try {
-            assertTrue(accessor.addRowToTable(TABLE_NAME_LOWER_CASE, columnNames, valuesOne));
-            assertTrue(accessor.addRowToTable(TABLE_NAME_LOWER_CASE, columnNames, valuesTwo));
-            assertTrue(accessor.addRowToTable(TABLE_NAME_LOWER_CASE, columnNames, valuesThree));
-            assertTrue(accessor.addRowToTable(TABLE_NAME_LOWER_CASE, columnNames, valuesFour));
+            assertTrue(accessor.addRowsToTable(TABLE_NAME_LOWER_CASE, columnNames, asList(valuesOne, valuesTwo, valuesThree, valuesFour)));
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -90,10 +84,7 @@ public class DatabaseTests {
         }
 
         try {
-            assertTrue(accessor.addRowToTable(TABLE_NAME_MIXED_CASE, columnNames, valuesOne));
-            assertTrue(accessor.addRowToTable(TABLE_NAME_MIXED_CASE, columnNames, valuesTwo));
-            assertTrue(accessor.addRowToTable(TABLE_NAME_MIXED_CASE, columnNames, valuesThree));
-            assertTrue(accessor.addRowToTable(TABLE_NAME_MIXED_CASE, columnNames, valuesFour));
+            assertTrue(accessor.addRowsToTable(TABLE_NAME_MIXED_CASE, columnNames, asList(valuesOne, valuesTwo, valuesThree, valuesFour)));
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -116,12 +107,12 @@ public class DatabaseTests {
 
     @Test(expected = SQLException.class)
     public void nonExistingTableTest() throws SQLException {
-        accessor.addRowToTable(NON_EXISTING_TABLE_NAME, columnNames, valuesOne);
+        accessor.addRowsToTable(NON_EXISTING_TABLE_NAME, columnNames, asList(valuesOne));
     }
 
     @Test
     public void selectFromTableTest() {
-        createTableAndInsertValuesTest();
+        createTableAndInsertValuesUpperCaseTest();
         try {
             List<List<String>> resultsOne = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, columnNames, null);
             assertTrue(resultsOne.get(0).containsAll(valuesOne));
@@ -137,7 +128,7 @@ public class DatabaseTests {
 
     @Test
     public void selectFromTableWithRegexTest() {
-        createTableAndInsertValuesTest();
+        createTableAndInsertValuesUpperCaseTest();
         try {
             HashMap<String, String> regexMap = new HashMap<>(2);
             regexMap.put("first_name", "^J.*$");
@@ -158,7 +149,7 @@ public class DatabaseTests {
 
     @Test
     public void countFromTableWithRegexTest() {
-        createTableAndInsertValuesTest();
+        createTableAndInsertValuesUpperCaseTest();
         try {
             HashMap<String, String> regexMap = new HashMap<>(2);
             regexMap.put("first_name", "^J.*$");
@@ -176,7 +167,7 @@ public class DatabaseTests {
 
     @Test
     public void getColumnNames() {
-        createTableAndInsertValuesTest();
+        createTableAndInsertValuesUpperCaseTest();
         try {
             List<String> result = accessor.getColumnNames(TABLE_NAME_UPPER_CASE);
             assertTrue(result.containsAll(allColumnNames));

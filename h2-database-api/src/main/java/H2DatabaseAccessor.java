@@ -7,8 +7,15 @@ import java.util.Map.Entry;
  * Requires informations about database name and host/domain, also needs user security credentials (username, password).
  */
 public class H2DatabaseAccessor {
-    private final H2DatabaseConnector connector;
-    private static final String primaryKey = "id";
+    private final H2DatabaseConnector m_connector;
+    private static final String CREATE_TABLE_STATEMENT = "create table \"%s\" (id int unsigned not null auto_increment, primary key (id)";
+    private static final String CREATE_TABLE_COLUMN = ", %s varchar(255) ";
+
+    private static final String DROP_TABLE_STATEMENT = "drop table if exists \"%s\";";
+
+    private static final String INSERT_INTO_STATEMENT =  "insert into \"%s\" values (default ";
+
+    private static final String ESCAPE_CHARACTER_REGEX = "[\\n\\r\\t\\']";
 
     /**
      * Basic constructor of @see H2DatabaseAccessor
@@ -19,11 +26,11 @@ public class H2DatabaseAccessor {
      * @throws NullPointerException - when one of given parameters is null or empty
      */
     public H2DatabaseAccessor(String username, String password, String databaseURL) {
-        connector = new H2DatabaseConnector(username, password, String.format("jdbc:h2:%s;IFEXISTS=TRUE;DATABASE_TO_UPPER=false", databaseURL));
+        m_connector = new H2DatabaseConnector(username, password, String.format("jdbc:h2:%s;IFEXISTS=TRUE;DATABASE_TO_UPPER=false", databaseURL));
     }
 
     /**
-     * Creates a new table in a database specified in <code>connector</code>.
+     * Creates a new table in a database specified in <code>m_connector</code>.
      * If table already exists it is removed before creating a new one.
      * Table always uses integer sequence named id as primary key. User cannot change that.
      * User only specifies names of data columns. All of them are of type <code>varchar(255)</code>
@@ -39,31 +46,28 @@ public class H2DatabaseAccessor {
         Connection connection = null;
 
         try {
-            // Check arguments validity
+            // Check if user passed any column names
             if (columnNames.isEmpty()) {
                 throw new IllegalArgumentException("No column names specified");
             }
 
-            // Create
-            StringBuilder columnsBuilder = new StringBuilder();
-            StringBuilder statementBuilder = new StringBuilder("create table \"")
-                    .append(tableName)
-                    .append(String.format("\" (%s int unsigned not null auto_increment, primary key (%s)", primaryKey, primaryKey));
+            // Create string with parametrized SQL statement - it will be used in PreparedStatement
+            StringBuilder statementBuilder = new StringBuilder(String.format(CREATE_TABLE_STATEMENT, tableName.replaceAll(ESCAPE_CHARACTER_REGEX, "")));
 
             for (String columnName : columnNames) {
-                columnsBuilder.append(", ").append(columnName).append(" varchar(255) ");
+                statementBuilder.append(String.format(CREATE_TABLE_COLUMN, columnName.replaceAll(ESCAPE_CHARACTER_REGEX, "")));
             }
 
-            statementBuilder.append(columnsBuilder)
-                    .append(");");
+            statementBuilder.append(");");
 
-            // Execute
-            connection = connector.getConnection();
+            // Create PreparedStatement and insert parameters
+            connection = m_connector.getConnection();
             connection.setAutoCommit(false);
             PreparedStatement statement = connection.prepareStatement(statementBuilder.toString());
+
+            // Execute
             statement.executeUpdate();
             statement.close();
-
             connection.commit();
         } catch (SQLException e) {
             result = false;
@@ -91,10 +95,10 @@ public class H2DatabaseAccessor {
 
         try {
             // Create
-            StringBuilder statementBuilder = new StringBuilder("drop table if exists \"").append(tableName).append("\"");
+            StringBuilder statementBuilder = new StringBuilder(String.format(DROP_TABLE_STATEMENT, tableName.replaceAll(ESCAPE_CHARACTER_REGEX, "")));
 
             // Execute
-            connection = connector.getConnection();
+            connection = m_connector.getConnection();
             connection.setAutoCommit(false);
 
             PreparedStatement statement = connection.prepareStatement(statementBuilder.toString());
@@ -120,66 +124,10 @@ public class H2DatabaseAccessor {
     /**
      * Adds a new row to specified table.
      *
-     * @param columnNames
-     * @param rowValues
+     * @param columnNames - list of column names in table (except default primary key ID)
+     * @param rowsValues - list of list with values of each new row in table
      * @return boolean value, <code>true</code> if row was inserted succesfully, <code>false</code> otherwise
      */
-    public boolean addRowToTable(String tableName, List<String> columnNames, List<String> rowValues) throws SQLException {
-        boolean result = true;
-        Connection connection = null;
-
-        if (!checkIfTableExists(tableName)) {
-            throw new SQLException(String.format("Table %s do not exists in database", tableName));
-        }
-
-        try {
-            // Check arguments validity
-            if (columnNames.isEmpty()) {
-                throw new IllegalArgumentException("No column names specified");
-            }
-            if (rowValues.isEmpty()) {
-                throw new IllegalArgumentException("No row values specified");
-            }
-            if (rowValues.size() != columnNames.size()) {
-                throw new IllegalArgumentException("Number of values must be equal to number of column names");
-            }
-
-            // Create
-            StringBuilder statementBuilder = new StringBuilder("insert into \"")
-                    .append(tableName).append("\" values (default");
-
-            for (int index = 0; index < rowValues.size(); index++) {
-                statementBuilder.append(", ?");
-            }
-            statementBuilder.append(");");
-            // Execute
-            connection = connector.getConnection();
-            connection.setAutoCommit(false);
-            PreparedStatement statement = connection.prepareStatement(statementBuilder.toString());
-            for (int index = 0; index < rowValues.size(); index++) {
-                statement.setString(index + 1, rowValues.get(index));
-            }
-
-            statement.executeUpdate();
-            statement.close();
-
-            connection.commit();
-        } catch (SQLException e) {
-            result = false;
-            throw e;
-        } finally {
-            try {
-                if (connection != null) {
-                    connection.close();
-                }
-            } catch (SQLException e) {
-                throw e;
-            }
-        }
-
-        return result;
-    }
-
     public boolean addRowsToTable(String tableName, List<String> columnNames, List<List<String>> rowsValues) throws SQLException {
         boolean result = true;
         Connection connection = null;
@@ -197,16 +145,15 @@ public class H2DatabaseAccessor {
                 throw new IllegalArgumentException("No row values specified");
             }
 
-            // Create
-            StringBuilder statementBuilder = new StringBuilder("insert into \"")
-                    .append(tableName).append("\" values (default");
+            // Create string with SQL statement
+            StringBuilder statementBuilder = new StringBuilder(String.format(INSERT_INTO_STATEMENT,tableName.replaceAll(ESCAPE_CHARACTER_REGEX, "")));
 
             for (int index = 0; index < rowsValues.get(0).size(); index++) {
                 statementBuilder.append(", ?");
             }
             statementBuilder.append(");");
             // Execute
-            connection = connector.getConnection();
+            connection = m_connector.getConnection();
             connection.setAutoCommit(false);
             PreparedStatement statement = connection.prepareStatement(statementBuilder.toString());
             for (List<String> rowValues : rowsValues) {
@@ -244,6 +191,7 @@ public class H2DatabaseAccessor {
      * @param columnRegexMap- contains pairs of column name (key) and associated regex (value).
      * @return ResultSet of executed query
      */
+    // TODO selectValuesFromTable and countValuesFromTable are very similar pieces of code consider refactoring
     public List<List<String>> selectValuesFromTable(String tableName, List<String> columnNames, Map<String, String> columnRegexMap) throws SQLException {
         List<List<String>> result = null;
         Connection connection = null;
@@ -257,35 +205,41 @@ public class H2DatabaseAccessor {
                 throw new IllegalArgumentException("No column names specified");
             }
 
-            StringBuilder columnNamesBuilder = new StringBuilder();
             StringBuilder statementBuilder = new StringBuilder("select ");
 
-            statementBuilder.append(columnNames.get(0));
-            for (int index = 1; index < columnNames.size(); index++) {
-                columnNamesBuilder.append(", ").append(columnNames.get(index));
+            statementBuilder.append(columnNames.get(0).replaceAll(ESCAPE_CHARACTER_REGEX, ""));
+            for (int i = 1; i < columnNames.size(); i++) {
+                statementBuilder.append(", ")
+                        .append(columnNames.get(i).replaceAll(ESCAPE_CHARACTER_REGEX, ""));
             }
 
-            statementBuilder.append(columnNamesBuilder).append(" from ").append(tableName);
+            statementBuilder.append(" from ").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, ""));
 
             if (columnRegexMap != null && !columnRegexMap.isEmpty()) {
                 statementBuilder.append(" where ");
                 Set<Entry<String, String>> entries = columnRegexMap.entrySet();
                 Iterator<Entry<String, String>> iterator = entries.iterator();
                 Entry<String, String> entry = iterator.next();
-                statementBuilder.append(entry.getKey()).append(" regexp \'").append(entry.getValue()).append('\'');
+                statementBuilder.append(entry.getKey().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+                        .append(" regexp \'")
+                        .append(entry.getValue().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+                        .append('\'');
 
                 while(iterator.hasNext()) {
                     entry = iterator.next();
-                    statementBuilder.append(" AND ").append(entry.getKey()).append(" regexp \'").append(entry.getValue()).append('\'');
+                    statementBuilder.append(" and ")
+                            .append(entry.getKey().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+                            .append(" regexp \'")
+                            .append(entry.getValue().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+                            .append('\'');
                 }
             }
 
             statementBuilder.append(';');
 
-            connection = connector.getConnection();
+            connection = m_connector.getConnection();
             connection.setAutoCommit(false);
             PreparedStatement statement = connection.prepareStatement(statementBuilder.toString());
-
             ResultSet resultSet = statement.executeQuery();
 
             result = new LinkedList<List<String>>();
@@ -334,24 +288,31 @@ public class H2DatabaseAccessor {
         }
 
         try {
-            StringBuilder statementBuilder = new StringBuilder("select count(*) from ").append(tableName);
+            StringBuilder statementBuilder = new StringBuilder("select count(*) from ").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, ""));
 
             if (columnRegexMap != null && !columnRegexMap.isEmpty()) {
                 statementBuilder.append(" where ");
                 Set<Entry<String, String>> entries = columnRegexMap.entrySet();
                 Iterator<Entry<String, String>> iterator = entries.iterator();
                 Entry<String, String> entry = iterator.next();
-                statementBuilder.append(entry.getKey()).append(" regexp \'").append(entry.getValue()).append('\'');
+                statementBuilder.append(entry.getKey().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+                        .append(" regexp \'")
+                        .append(entry.getValue().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+                        .append('\'');
 
                 while(iterator.hasNext()) {
                     entry = iterator.next();
-                    statementBuilder.append(" AND ").append(entry.getKey()).append(" regexp \'").append(entry.getValue()).append('\'');
+                    statementBuilder.append(" and ")
+                            .append(entry.getKey().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+                            .append(" regexp \'")
+                            .append(entry.getValue().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+                            .append('\'');
                 }
             }
 
             statementBuilder.append(';');
 
-            connection = connector.getConnection();
+            connection = m_connector.getConnection();
             connection.setAutoCommit(false);
             PreparedStatement statement = connection.prepareStatement(statementBuilder.toString());
 
@@ -360,42 +321,6 @@ public class H2DatabaseAccessor {
             result = Integer.parseInt(resultSet.getString("COUNT(*)"));
             statement.close();
 
-            connection.commit();
-        } catch (SQLException e) {
-            throw e;
-        } finally {
-            try {
-                if (connection != null) {
-                    connection.close();
-                }
-            } catch (SQLException e) {
-                throw e;
-            }
-        }
-
-        return result;
-    }
-
-    // TODO Do we even need this method?
-    // TODO Returning a ResultSet is a bad idea. Need better solution
-
-    /**
-     * Executes any valid SQL statement
-     *
-     * @param statement - string with a valid SQL statement
-     * @return ResultSset
-     */
-    public ResultSet executeQuery(String statement) throws SQLException {
-        ResultSet result = null;
-        Connection connection = null;
-
-        try {
-            connection = connector.getConnection();
-            connection.setAutoCommit(false);
-            Statement connectionStatement = connection.createStatement();
-            result = connectionStatement.executeQuery(statement);
-
-            connectionStatement.close();
             connection.commit();
         } catch (SQLException e) {
             throw e;
@@ -422,7 +347,7 @@ public class H2DatabaseAccessor {
         List<String> columnNames = new LinkedList<>();
         Connection connection = null;
         try {
-            connection = connector.getConnection();
+            connection = m_connector.getConnection();
             connection.setAutoCommit(false);
 
             ResultSet columns = connection.getMetaData().getColumns(null, null, tableName, null);
@@ -455,7 +380,7 @@ public class H2DatabaseAccessor {
         Connection connection = null;
         boolean result = false;
         try {
-            connection = connector.getConnection();
+            connection = m_connector.getConnection();
             connection.setAutoCommit(false);
 
             ResultSet tables = connection.getMetaData().getTables(null, null, tableName, null);
