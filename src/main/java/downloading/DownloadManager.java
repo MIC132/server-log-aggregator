@@ -1,15 +1,14 @@
 package downloading;
 
 import com.jcraft.jsch.JSchException;
-import parsing.FileParser;
 import sun.plugin.dom.exception.InvalidStateException;
+import util.NamePatternConverter;
 import util.Splitter;
 
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,17 +35,19 @@ public class DownloadManager {
         }else {
             throw new InvalidStateException("Invalid source type: "+source.type);
         }
-        formatter = DateTimeFormatter.ofPattern(source.datePattern);
+        formatter = NamePatternConverter.convertToFormatter(source.namePattern);
         this.parser = new FileParser(new Splitter(source.splitPattern));
     }
 
-    public List<List<String>> downloadAndParse(String targetPath, LocalDateTime start, LocalDateTime end, ChronoUnit unit, int step){
-        LocalDateTime currentTime = start;
+    private List<List<String>> downloadFromDate(LocalDateTime startTime, boolean continuation){
+        LocalDateTime endTime = LocalDateTime.now();
+        LocalDateTime currentTime = startTime;
         List<List<String>> out = new ArrayList<>();
-        while (currentTime.isBefore(end)){
+        while (currentTime.isBefore(endTime)){
             try {
-                String path = source.path + source.namePattern + currentTime.format(formatter) + ".log";
-                File target = new File(targetPath + source.namePattern + currentTime.format(formatter) + ".log");
+                String path = source.path + currentTime.format(formatter);
+                File target = new File(System.getProperty("user.dir")+System.getProperty("file.separator")+currentTime.format(formatter));
+                target.deleteOnExit();
                 if (downloader.type == Source.Type.HTTP) {
                     HttpLogDownloader httpDownloader = (HttpLogDownloader) downloader;
                     httpDownloader.downloadToFile(source.address + path, target);
@@ -59,13 +60,25 @@ public class DownloadManager {
                 } else {
                     throw new InvalidStateException("Invalid downloader type: " + downloader.type);
                 }
-                out.addAll(parser.parseFile(target));
+                out.addAll(parser.parseFile(target, source, continuation));
+                continuation = false;
+                target.delete();
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            currentTime = currentTime.plus(step, unit);
+            currentTime = currentTime.plus(source.stepAmount, source.stepUnit);
         }
+        source.lastDownload = currentTime;
         return out;
+    }
+
+    public List<List<String>> initialDownload(LocalDateTime startTime){
+        return downloadFromDate(startTime, false);
+    }
+
+    public List<List<String>> downloadSinceLast(){
+        LocalDateTime startDate = source.lastDownload;
+        return downloadFromDate(startDate, true);
     }
 
 }
