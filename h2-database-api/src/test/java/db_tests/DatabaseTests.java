@@ -1,4 +1,4 @@
-/*
+package db_tests;/*
 Copyright (c) 2015, AGH University of Science and Technology
 All rights reserved.
 
@@ -27,6 +27,7 @@ of the authors and should not be interpreted as representing official policies,
 either expressed or implied, of the FreeBSD Project.
 */
 
+import classes.H2DatabaseAccessor;
 import org.junit.Test;
 
 import java.sql.SQLException;
