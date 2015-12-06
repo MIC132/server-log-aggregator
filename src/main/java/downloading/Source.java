@@ -36,5 +36,6 @@ public abstract class Source implements Serializable{
         this.splitter = new Splitter(splitPattern);
         this.stepUnit = stepUnit;
         this.stepAmount = stepAmount;
+        lastDownload = LocalDateTime.now();
     }
 }
