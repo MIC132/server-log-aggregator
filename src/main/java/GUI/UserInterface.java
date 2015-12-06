@@ -1,5 +1,7 @@
 package GUI;
 import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -7,6 +9,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.TableView;
+import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
@@ -15,8 +18,12 @@ import jfxtras.scene.control.LocalTimeTextField;
 import java.util.ArrayList;
 
 public class UserInterface extends Application {
-    final TableView table = new TableView();
     TabPane root = new TabPane();
+    API api = API.getInstance();
+    ObservableList<ParsedData> dataList = FXCollections.observableArrayList();
+    int numberOfColumns = 0;
+    int offset = 0;
+    int amount = 25;
 
     Tab createConfigurationTab(){
         ArrayList<Node> labels = new ArrayList<>();
@@ -54,19 +61,24 @@ public class UserInterface extends Application {
         LocalTimeTextField endTimeTextField = new LocalTimeTextField();     //still not working properly
 
         /**
-         * Button!
+         * Buttons!
          */
         Button submitButton = new Button();
-        submitButton.setText("Pobierz");
+        submitButton.setText("Podłącz");
         submitButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
-                try {
-                    root.getTabs().remove(1);
-                }
-                catch(IndexOutOfBoundsException a) {}
-                table.getColumns().clear();
-                root.getTabs().add(createBrowsingTab(3));
+                api.connect();
+            }
+        });
+
+        Button downloadButton = new Button();
+        downloadButton.setText("Pobierz");
+        downloadButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                dataList =  api.download(amount, offset);
+                createBrowsingTab();
             }
         });
 
@@ -74,25 +86,27 @@ public class UserInterface extends Application {
          * This part allows us to add created labels to columns, managing their order
          */
         labels.add(urlLabel);
-        labels.add(regexpLabel);
         labels.add(sourceTypeLabel);
         labels.add(loginLabel);
         labels.add(passwordLabel);
+        labels.add(regexpLabel);
         labels.add(startDateLabel);
         labels.add(startTimeLabel);
         labels.add(endDateLabel);
         labels.add(endTimeLabel);
+        labels.add(submitButton);
 
         fields.add(urlTextField);
-        fields.add(regexpTextField);
         fields.add(sourceTypeComboBox);
         fields.add(loginTextField);
         fields.add(passwordTextField);
+        fields.add(regexpTextField);
         fields.add(startDatePicker);
         fields.add(startTimeTextField);
         fields.add(endDatePicker);
         fields.add(endTimeTextField);
-        fields.add(submitButton);
+        fields.add(downloadButton);
+
 
         /**
          * Padding of columns, their order and name of tab
@@ -117,24 +131,66 @@ public class UserInterface extends Application {
         return configurationTab;
     }
 
-    Tab createBrowsingTab(int numberOfColumns){
-        TableColumn firstColumn = new TableColumn("ID");
-        table.getColumns().add(firstColumn);
+    void addColumn(TableView tableView){
+        int i = numberOfColumns;
 
-        TableColumn secondColumn;
-        for(int i = 0; i < numberOfColumns; i++) {
-            secondColumn = new TableColumn("Data");
-            table.getColumns().add(secondColumn);
-        }
+        TableColumn<ParsedData, String> newColumn = new TableColumn<>("#" + String.valueOf(++numberOfColumns));
+        newColumn.setCellValueFactory(cellData -> cellData.getValue().getCellValue(i));
+        newColumn.setCellFactory(TextFieldTableCell.<ParsedData>forTableColumn());
 
+        tableView.getColumns().add(newColumn);
+    }
+
+    void createBrowsingTab(){
+        numberOfColumns = 0;
+        TableView table = new TableView();
+        while(root.getTabs().size() > 1) root.getTabs().remove(1);
+
+        for(int i = 0; i < dataList.get(0).numberOfColumns; i++)
+            addColumn(table);
+
+        table.setItems(dataList);
+        table.setPrefHeight(4096.00);
         Button first = new Button("|<");
+        first.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                dataList.removeAll(dataList);
+                offset = 0;
+                dataList.addAll(api.download(amount, offset));
+            }
+        });
         Button previous = new Button("<");
+        previous.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                dataList.removeAll(dataList);
+                offset -= amount;
+                dataList.addAll(api.download(amount, offset));
+            }
+        });
         Button next = new Button(">");
+        next.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                dataList.removeAll(dataList);
+                offset += amount;
+                dataList.addAll(api.download(amount, offset));
+            }
+        });
         Button last = new Button(">|");
+        last.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                dataList.removeAll(dataList);
+                offset += amount*5;
+                dataList.addAll(api.download(amount, offset));
+            }
+        });
 
         HBox browsingButtons = new HBox();
-        browsingButtons.setAlignment(Pos.CENTER);
-        browsingButtons.getChildren().addAll(first,previous, next, last);
+        browsingButtons.setAlignment(Pos.BOTTOM_CENTER);
+        browsingButtons.getChildren().addAll(first, previous, next, last);
 
         VBox browsingTabContent = new VBox();
         browsingTabContent.getChildren().addAll(table, browsingButtons);
@@ -143,7 +199,7 @@ public class UserInterface extends Application {
         browsingTab.setText("Browse");
         browsingTab.setClosable(false);
         browsingTab.setContent(browsingTabContent);
-        return browsingTab;
+        root.getTabs().add(browsingTab);
     }
 
     @Override
@@ -151,10 +207,8 @@ public class UserInterface extends Application {
         primaryStage.setTitle("Log Aggregator");
 
         Tab configurationTab = createConfigurationTab();
-//        Tab browsingTab = createBrowsingTab(1);
 
         root.getTabs().add(configurationTab);
-//        root.getTabs().add(browsingTab);
 
         primaryStage.setScene(new Scene(root, 400, 400));
         primaryStage.show();
