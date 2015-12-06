@@ -3,8 +3,10 @@ import org.junit.Test;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /*
@@ -106,13 +108,34 @@ public class DatabaseTests {
     public void selectFromTableTest() {
         createTableAndInsertValuesUpperCaseTest();
         try {
-            List<List<String>> resultsOne = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, columnNames, null);
+            List<List<String>> resultsOne = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, columnNames, null, null, null);
+            assertTrue(resultsOne.size() == 4);
             assertTrue(resultsOne.get(0).containsAll(valuesOne));
             assertTrue(resultsOne.get(3).containsAll(valuesFour));
 
-            List<List<String>> resultsTwo = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, asList("*"), null);
+            List<List<String>> resultsTwo = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, asList("*"), null, null, null);
+            assertTrue(resultsOne.size() == 4);
             assertTrue(resultsTwo.get(0).containsAll(returnOne));
             assertTrue(resultsTwo.get(3).containsAll(returnThree));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /* Unit test for selectValuesFromTable method, without additional WHERE clauses, with LIMIT and OFFSET parameters*/
+    @Test
+    public void selectFromTableWithLimitAndOffsetTest() {
+        createTableAndInsertValuesUpperCaseTest();
+        try {
+            List<List<String>> resultsOne = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, columnNames, null, 2, null);
+            assertTrue(resultsOne.size() == 2);
+            assertTrue(resultsOne.get(0).containsAll(valuesOne));
+            assertTrue(resultsOne.get(1).containsAll(valuesTwo));
+
+            List<List<String>> resultsTwo = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, columnNames, null, 2, 2);
+            assertTrue(resultsTwo.size() == 2);
+            assertTrue(resultsTwo.get(0).containsAll(valuesThree));
+            assertTrue(resultsTwo.get(1).containsAll(valuesFour));
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -126,15 +149,40 @@ public class DatabaseTests {
             HashMap<String, String> regexMap = new HashMap<>(2);
             regexMap.put("first_name", "^J.*$");
             regexMap.put("last_name", "^K.*$");
-            List<List<String>> resultsOne = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, asList("*"), regexMap);
+            List<List<String>> resultsOne = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, asList("*"), regexMap, null, null);
+            assertEquals(resultsOne.size(), 2);
             assertTrue(resultsOne.get(0).containsAll(returnOne));
             assertTrue(resultsOne.get(1).containsAll(returnThree));
 
             regexMap.put("first_name", "^(J|R).*$");
-            List<List<String>> resultsTwo = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, asList("*"), regexMap);
+            List<List<String>> resultsTwo = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, asList("*"), regexMap, null, null);
+            assertEquals(resultsTwo.size(), 3);
             assertTrue(resultsTwo.get(0).containsAll(returnOne));
             assertTrue(resultsTwo.get(1).containsAll(returnTwo));
             assertTrue(resultsTwo.get(2).containsAll(returnThree));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /* Unit test for selectValuesFromTable method, with additional WHERE clause, LIMIT and OFFSET parameters */
+    @Test
+    public void selectFromTableWithRegexLimitAndOffsetTest() {
+        createTableAndInsertValuesUpperCaseTest();
+        try {
+            HashMap<String, String> regexMap = new HashMap<>(2);
+            regexMap.put("first_name", "^J.*$");
+            regexMap.put("last_name", "^K.*$");
+            List<List<String>> resultsOne = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, asList("*"), regexMap, 1, 1);
+            assertEquals(resultsOne.size(), 1);
+            assertTrue(resultsOne.get(0).containsAll(returnThree));
+
+            regexMap.put("first_name", "^(J|R).*$");
+            List<List<String>> resultsTwo = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, asList("*"), regexMap, 2, 1);
+            assertEquals(resultsTwo.size(), 2);
+            //assertTrue(resultsTwo.get(0).containsAll(returnOne));
+            assertTrue(resultsTwo.get(0).containsAll(returnTwo));
+            assertTrue(resultsTwo.get(1).containsAll(returnThree));
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -148,11 +196,11 @@ public class DatabaseTests {
             HashMap<String, String> regexMap = new HashMap<>(2);
             regexMap.put("first_name", "^J.*$");
             regexMap.put("last_name", "^K.*$");
-            int resultsOne = accessor.countValuesFromTable(TABLE_NAME_UPPER_CASE, regexMap);
+            int resultsOne = accessor.countValuesFromTable(TABLE_NAME_UPPER_CASE, regexMap, null, null);
             assertTrue(resultsOne == 2);
 
             regexMap.put("first_name", "^(J|R).*$");
-            int resultsTwo = accessor.countValuesFromTable(TABLE_NAME_UPPER_CASE, regexMap);
+            int resultsTwo = accessor.countValuesFromTable(TABLE_NAME_UPPER_CASE, regexMap, null, null);
             assertTrue(resultsTwo == 3);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -183,7 +231,7 @@ public class DatabaseTests {
 
         try {
             accessor.addRowsToTable(TABLE_NAME_UPPER_CASE, columnNames, asList(insertInjection));
-            List<List<String>> result = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, columnNames, null);
+            List<List<String>> result = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, columnNames, null, null, null);
             result.get(0).containsAll(asList("1", "Jaroslaw", "Kulesza); drop table TEST_TABLE; --"));
         } catch (SQLException e) {
             e.printStackTrace();
@@ -196,11 +244,11 @@ public class DatabaseTests {
     @Test
     public void selectSqlInjectionTest() {
         createTableAndInsertValuesUpperCaseTest();
-        HashMap<String, String> regexMap = new HashMap<>(2);
+        Map<String, String> regexMap = new HashMap<>(2);
         regexMap.put("first_name", "^J.*$; drop table TEST_TABLE; --");
         try {
-            List<List<String>> result = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, columnNames, regexMap);
-            assertTrue(result.size() == 0);
+            List<List<String>> result = accessor.selectValuesFromTable(TABLE_NAME_UPPER_CASE, columnNames, regexMap, null, null);
+            assertEquals(0, result.size());
         } catch (SQLException e) {
             e.printStackTrace();
         }

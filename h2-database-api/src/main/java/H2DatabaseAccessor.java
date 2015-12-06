@@ -193,7 +193,9 @@ public class H2DatabaseAccessor {
      * @param columnRegexMap- contains pairs of column name (key) and associated regex (value).
      * @return ResultSet of executed query
      */
-    public List<List<String>> selectValuesFromTable(String tableName, List<String> columnNames, Map<String, String> columnRegexMap) throws SQLException {
+    public List<List<String>> selectValuesFromTable(String tableName, List<String> columnNames,
+                                                    Map<String, String> columnRegexMap,
+                                                    Integer limit, Integer offset) throws SQLException {
         List<List<String>> result = null;
         Connection connection = null;
 
@@ -213,7 +215,13 @@ public class H2DatabaseAccessor {
                     .append(columnNames.get(i).replaceAll(ESCAPE_CHARACTER_REGEX, ""));
         }
         statementBuilder.append(" from ").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, ""));
-        addRegexexToStatement(statementBuilder, columnRegexMap);
+        if (columnRegexMap != null && !columnRegexMap.isEmpty()) {
+            addRegexesToStatement(statementBuilder, columnRegexMap);
+        }
+        if(limit != null && limit > 0) {
+            addOffsetAndLimitToStatement(statementBuilder, limit, offset);
+        }
+        statementBuilder.append(';');
 
         try {
             // Execute
@@ -255,7 +263,8 @@ public class H2DatabaseAccessor {
      * @param columnRegexMap- contains pairs of column name (key) and associated regex (value).
      * @return ResultSet of executed query
      */
-    public int countValuesFromTable(String tableName, Map<String, String> columnRegexMap) throws SQLException {
+    public int countValuesFromTable(String tableName, Map<String, String> columnRegexMap,
+                                    Integer limit, Integer offset) throws SQLException {
         Integer result = null;
         Connection connection = null;
 
@@ -266,7 +275,13 @@ public class H2DatabaseAccessor {
 
         // Create string with SQL statement
         StringBuilder statementBuilder = new StringBuilder("select count(*) from ").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, ""));
-        addRegexexToStatement(statementBuilder, columnRegexMap);
+        if (columnRegexMap != null && !columnRegexMap.isEmpty()) {
+            addRegexesToStatement(statementBuilder, columnRegexMap);
+        }
+        if(limit != null && limit > 0 && offset != null && offset > 0) {
+            addOffsetAndLimitToStatement(statementBuilder, limit, offset);
+        }
+        statementBuilder.append(';');
 
         try {
             connection = m_connector.getConnection();
@@ -359,30 +374,33 @@ public class H2DatabaseAccessor {
      * Adds columns regexes to SELECT query. This metod is used to avoid ode duplication
      *
      * @param statementBuilder - reference to StringBuilder used to create statement
-     * @param columnRegexMap- contains pairs of column name (key) and associated regex (value).
+     * @param columnRegexMap-  contains pairs of column name (key) and associated regex (value).
      * @return true if table exists, false otherwise
      */
-    private void addRegexexToStatement(StringBuilder statementBuilder, Map<String, String> columnRegexMap) {
-        if (columnRegexMap != null && !columnRegexMap.isEmpty()) {
-            statementBuilder.append(" where ");
-            Set<Entry<String, String>> entries = columnRegexMap.entrySet();
-            Iterator<Entry<String, String>> iterator = entries.iterator();
-            Entry<String, String> entry = iterator.next();
-            statementBuilder.append(entry.getKey().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+    private void addRegexesToStatement(StringBuilder statementBuilder, Map<String, String> columnRegexMap) {
+        statementBuilder.append(" where ");
+        Set<Entry<String, String>> entries = columnRegexMap.entrySet();
+        Iterator<Entry<String, String>> iterator = entries.iterator();
+        Entry<String, String> entry = iterator.next();
+        statementBuilder.append(entry.getKey().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+                .append(" regexp \'")
+                .append(entry.getValue().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
+                .append('\'');
+
+        while (iterator.hasNext()) {
+            entry = iterator.next();
+            statementBuilder.append(" and ")
+                    .append(entry.getKey().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
                     .append(" regexp \'")
                     .append(entry.getValue().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
                     .append('\'');
-
-            while (iterator.hasNext()) {
-                entry = iterator.next();
-                statementBuilder.append(" and ")
-                        .append(entry.getKey().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
-                        .append(" regexp \'")
-                        .append(entry.getValue().replaceAll(ESCAPE_CHARACTER_REGEX, ""))
-                        .append('\'');
-            }
         }
+    }
 
-        statementBuilder.append(';');
+    private void addOffsetAndLimitToStatement(StringBuilder statementBuilder, Integer limit, Integer offset) {
+        statementBuilder.append(" limit ").append(limit);
+        if (offset != null && offset > 0) {
+            statementBuilder.append(" offset ").append(offset);
+        }
     }
 }
