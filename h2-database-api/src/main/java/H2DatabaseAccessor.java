@@ -194,6 +194,21 @@ public class H2DatabaseAccessor {
      * @return ResultSet of executed query
      */
     public List<List<String>> selectValuesFromTable(String tableName, List<String> columnNames,
+                                                    Map<String, String> columnRegexMap) throws SQLException {
+        return selectValuesFromTable(tableName, columnNames, columnRegexMap, null, null);
+    }
+
+    /**
+     * Executes a SELECT query on specified table with given list of columns as parameters. Optionally user can specify regular expression for some of the columns
+     *
+     * @param tableName       - name of table
+     * @param columnNames     - list of column names
+     * @param columnRegexMap  - contains pairs of column name (key) and associated regex (value).
+     * @param limit           - maximum number of rows that should be
+     * @param offset          - skip that many rows before beginning to return row
+     * @return ResultSet of executed query
+     */
+    public List<List<String>> selectValuesFromTable(String tableName, List<String> columnNames,
                                                     Map<String, String> columnRegexMap,
                                                     Integer limit, Integer offset) throws SQLException {
         List<List<String>> result = null;
@@ -261,6 +276,19 @@ public class H2DatabaseAccessor {
      *
      * @param tableName       - name of table
      * @param columnRegexMap- contains pairs of column name (key) and associated regex (value).
+     * @return ResultSet of executed query
+     */
+    public int countValuesFromTable(String tableName, Map<String, String> columnRegexMap) throws SQLException {
+        return countValuesFromTable(tableName, columnRegexMap, null, null);
+    }
+
+    /**
+     * Executes a SELECT COUNT(*) query on specified table. Optionally user can specify regular expression for some of the columns
+     *
+     * @param tableName       - name of table
+     * @param columnRegexMap- contains pairs of column name (key) and associated regex (value).
+     * @param limit           - maximum number of rows that should be
+     * @param offset          - skip that many rows before beginning to return row
      * @return ResultSet of executed query
      */
     public int countValuesFromTable(String tableName, Map<String, String> columnRegexMap,
