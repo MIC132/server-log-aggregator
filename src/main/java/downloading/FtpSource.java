@@ -1,11 +1,12 @@
 package downloading;
 
+import java.io.Serializable;
 import java.time.temporal.ChronoUnit;
 
 /**
  * Created by MIC on 2015-11-28.
  */
-public class FtpSource extends Source{
+public class FtpSource extends Source implements Serializable{
     final String login;
     final String password;
 

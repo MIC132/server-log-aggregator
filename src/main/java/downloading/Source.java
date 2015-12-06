@@ -2,13 +2,14 @@ package downloading;
 
 import util.Splitter;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
 /**
  * Created by MIC on 2015-11-28.
  */
-public abstract class Source {
+public abstract class Source implements Serializable{
     enum Type{
         FTP, HTTP, SSH
     }
