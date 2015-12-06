@@ -428,7 +428,7 @@ public class H2DatabaseAccessor {
     }
 
     /**
-     * Adds columns regexes to SELECT query. This metod is used to avoid ode duplication
+     * Adds columns regexes to SELECT query. This method is used to avoid code duplication
      *
      * @param statementBuilder - reference to StringBuilder used to create statement
      * @param columnRegexMap-  contains pairs of column name (key) and associated regex (value).
@@ -454,6 +454,14 @@ public class H2DatabaseAccessor {
         }
     }
 
+    /**
+     * Adds columns LIMIT and OFFSET parameters to SELECT query. This method is used to avoid code duplication
+     *
+     * @param statementBuilder - reference to StringBuilder used to create statement
+     * @param limit -  value for the LIMIT parameter
+     * @param offset - value for the OFFSET parameter
+     * @return true if table exists, false otherwise
+     */
     private void addOffsetAndLimitToStatement(StringBuilder statementBuilder, Integer limit, Integer offset) {
         statementBuilder.append(" limit ").append(limit);
         if (offset != null && offset > 0) {
