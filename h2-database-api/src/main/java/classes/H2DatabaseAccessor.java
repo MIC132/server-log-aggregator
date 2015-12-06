@@ -1,4 +1,4 @@
-/*
+package classes;/*
 Copyright (c) 2015, AGH University of Science and Technology
 All rights reserved.
 
@@ -50,7 +50,7 @@ public class H2DatabaseAccessor {
     private static final String ESCAPE_CHARACTER_REGEX = "[\\n\\r\\t\\']";
 
     /**
-     * Basic constructor of @see H2DatabaseAccessor
+     * Basic constructor of @see classes.H2DatabaseAccessor
      *
      * @param username    - name of user account used for connecting with database
      * @param password    - password credentials
