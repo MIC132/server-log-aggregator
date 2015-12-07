@@ -257,13 +257,13 @@ public class H2DatabaseAccessor {
         }
 
         // Create string with SQL statement
-        StringBuilder statementBuilder = new StringBuilder("select ");
+        StringBuilder statementBuilder = new StringBuilder("select");
         statementBuilder.append(columnNames.get(0).replaceAll(ESCAPE_CHARACTER_REGEX, ""));
         for (int i = 1; i < columnNames.size(); i++) {
             statementBuilder.append(", ")
                     .append(columnNames.get(i).replaceAll(ESCAPE_CHARACTER_REGEX, ""));
         }
-        statementBuilder.append(" from ").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, ""));
+        statementBuilder.append(" from \"").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, "")).append("\"");
         if (columnRegexMap != null && !columnRegexMap.isEmpty()) {
             addRegexesToStatement(statementBuilder, columnRegexMap);
         }
@@ -338,7 +338,7 @@ public class H2DatabaseAccessor {
         }
 
         // Create string with SQL statement
-        StringBuilder statementBuilder = new StringBuilder("select count(*) from ").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, ""));
+        StringBuilder statementBuilder = new StringBuilder("select count(*) from \"").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, "")).append("\"");
         if (columnRegexMap != null && !columnRegexMap.isEmpty()) {
             addRegexesToStatement(statementBuilder, columnRegexMap);
         }
