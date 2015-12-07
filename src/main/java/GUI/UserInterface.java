@@ -1,4 +1,5 @@
 package GUI;
+import downloading.*;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -8,13 +9,13 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.TableView;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import jfxtras.scene.control.LocalTimeTextField;
 
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 
 public class UserInterface extends Application {
@@ -25,6 +26,56 @@ public class UserInterface extends Application {
     int offset = 0;
     int amount = 25;
 
+    Tab createDatabaseTab(){
+        ArrayList<Node> labels = new ArrayList<>();
+        ArrayList<Node> fields = new ArrayList<>();
+
+        Label urlLabel = new Label("URL:");
+        TextField urlTextField = new TextField();
+        Label loginLabel = new Label("Login:");
+        TextField loginTextField = new TextField();
+        Label passwordLabel = new Label("Password:");
+        TextField passwordTextField = new TextField();
+
+        Button submitButton = new Button();
+        submitButton.setText("Podłącz");
+        submitButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                api.connectToDatabase(urlTextField.getText(), loginTextField.getText(), passwordTextField.getText());
+            }
+        });
+
+        labels.add(urlLabel);
+        labels.add(loginLabel);
+        labels.add(passwordLabel);
+
+        fields.add(urlTextField);
+        fields.add(loginTextField);
+        fields.add(passwordTextField);
+        fields.add(submitButton);
+
+
+        VBox leftColumn = new VBox();
+        leftColumn.getChildren().addAll(labels);
+        leftColumn.setPadding(new Insets(12,10,10,10));
+        leftColumn.setSpacing(8);
+
+        VBox rightColumn = new VBox();
+        rightColumn.getChildren().addAll(fields);
+        rightColumn.setPadding(new Insets(10,10,10,10));
+
+        HBox configurationTabContent = new HBox();
+        configurationTabContent.getChildren().addAll(leftColumn, rightColumn);
+
+        Tab configurationTab = new Tab();
+        configurationTab.setText("Configuration");
+        configurationTab.setClosable(false);
+        configurationTab.setContent(configurationTabContent);
+
+        return configurationTab;
+    }
+
     Tab createConfigurationTab(){
         ArrayList<Node> labels = new ArrayList<>();
         ArrayList<Node> fields = new ArrayList<>();
@@ -34,41 +85,75 @@ public class UserInterface extends Application {
          */
         Label urlLabel = new Label("URL:");
         TextField urlTextField = new TextField();
-
+        Label pathLabel = new Label("Path:");
+        TextField pathTextField = new TextField();
+        Label filenamePatternLabel = new Label("Filename Pattern:");
+        TextField filenamePatternTextField = new TextField();
         Label regexpLabel = new Label("Regexp:");
         TextField regexpTextField = new TextField();
-
-        Label loginLabel = new Label("Login:");
-        TextField loginTextField = new TextField();
-
-        Label passwordLabel = new Label("Password:");
-        TextField passwordTextField = new TextField();
-
+        Label timeStampingTypeLabel = new Label("Time Stamping:");
+        ComboBox<ChronoUnit> timeStampingTypeComboBox = new ComboBox<>();
+        timeStampingTypeComboBox.getItems().addAll(ChronoUnit.values());
         Label sourceTypeLabel = new Label("Source:");
         ComboBox<SourceType> sourceTypeComboBox = new ComboBox<>();
         sourceTypeComboBox.getItems().addAll(SourceType.values());
-
+        Label stepAmountLabel = new Label("Step Amount:");
+        TextField stepAmountTextField = new TextField();
         Label startDateLabel = new Label("Start date:");
         DatePicker startDatePicker = new DatePicker();
+        Label loginLabel = new Label("Login:");
+        TextField loginTextField = new TextField();
+        Label passwordLabel = new Label("Password:");
+        TextField passwordTextField = new TextField();
 
-        Label startTimeLabel = new Label("Start time:");
-        LocalTimeTextField startTimeTextField = new LocalTimeTextField();   //still not working properly
 
-        Label endDateLabel = new Label("End date:");
-        DatePicker endDatePicker = new DatePicker();
-
-        Label endTimeLabel = new Label("End time:");
-        LocalTimeTextField endTimeTextField = new LocalTimeTextField();     //still not working properly
-
-        /**
-         * Buttons!
-         */
         Button submitButton = new Button();
         submitButton.setText("Podłącz");
         submitButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
-                api.connect();
+                Source source = null;
+                switch(sourceTypeComboBox.getValue()){
+                    case FTP:
+                        source = new FtpSource(
+                                "",
+                                urlTextField.getText(),
+                                pathTextField.getText(),
+                                filenamePatternTextField.getText(),
+                                regexpTextField.getText(),
+                                timeStampingTypeComboBox.getValue(),
+                                Integer.parseInt(stepAmountTextField.getText()),
+                                loginTextField.getText(),
+                                passwordTextField.getText()
+                        );
+                        break;
+                    case SSH:
+                        source = new SshSource(
+                                "",
+                                urlTextField.getText(),
+                                pathTextField.getText(),
+                                filenamePatternTextField.getText(),
+                                regexpTextField.getText(),
+                                timeStampingTypeComboBox.getValue(),
+                                Integer.parseInt(stepAmountTextField.getText()),
+                                loginTextField.getText(),
+                                passwordTextField.getText()
+                        );
+                        break;
+                    case HTTP:
+                        source = new HttpSource(
+                                "",
+                                urlTextField.getText(),
+                                pathTextField.getText(),
+                                filenamePatternTextField.getText(),
+                                regexpTextField.getText(),
+                                timeStampingTypeComboBox.getValue(),
+                                Integer.parseInt(stepAmountTextField.getText())
+                        );
+                        break;
+
+                }
+                api.connectToSource(source, startDatePicker.getValue());
             }
         });
 
@@ -86,27 +171,28 @@ public class UserInterface extends Application {
          * This part allows us to add created labels to columns, managing their order
          */
         labels.add(urlLabel);
+        labels.add(pathLabel);
+        labels.add(filenamePatternLabel);
+        labels.add(regexpLabel);
         labels.add(sourceTypeLabel);
+        labels.add(timeStampingTypeLabel);
+        labels.add(stepAmountLabel);
+        labels.add(startDateLabel);
         labels.add(loginLabel);
         labels.add(passwordLabel);
-        labels.add(regexpLabel);
-        labels.add(startDateLabel);
-        labels.add(startTimeLabel);
-        labels.add(endDateLabel);
-        labels.add(endTimeLabel);
         labels.add(submitButton);
 
         fields.add(urlTextField);
+        fields.add(pathTextField);
+        fields.add(filenamePatternTextField);
+        fields.add(regexpTextField);
         fields.add(sourceTypeComboBox);
+        fields.add(timeStampingTypeComboBox);
+        fields.add(stepAmountTextField);
+        fields.add(startDatePicker);
         fields.add(loginTextField);
         fields.add(passwordTextField);
-        fields.add(regexpTextField);
-        fields.add(startDatePicker);
-        fields.add(startTimeTextField);
-        fields.add(endDatePicker);
-        fields.add(endTimeTextField);
         fields.add(downloadButton);
-
 
         /**
          * Padding of columns, their order and name of tab
@@ -144,7 +230,7 @@ public class UserInterface extends Application {
     void createBrowsingTab(){
         numberOfColumns = 0;
         TableView table = new TableView();
-        while(root.getTabs().size() > 1) root.getTabs().remove(1);
+        while(root.getTabs().size() > 2) root.getTabs().remove(2);
 
         for(int i = 0; i < dataList.get(0).numberOfColumns; i++)
             addColumn(table);
@@ -206,9 +292,8 @@ public class UserInterface extends Application {
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Log Aggregator");
 
-        Tab configurationTab = createConfigurationTab();
-
-        root.getTabs().add(configurationTab);
+        root.getTabs().add(createDatabaseTab());
+        root.getTabs().add(createConfigurationTab());
 
         primaryStage.setScene(new Scene(root, 400, 400));
         primaryStage.show();

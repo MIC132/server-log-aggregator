@@ -6,6 +6,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -27,7 +28,7 @@ public class ParsedData {
             this.cellValue.add(new SimpleStringProperty(input[i]));
     }
 
-    public ParsedData(ArrayList<String> input){
+    public ParsedData(List<String> input){
         numberOfColumns = input.size();
         for(int i = 0; i < input.size(); i++)
             this.cellValue.add(new SimpleStringProperty(input.get(i)));

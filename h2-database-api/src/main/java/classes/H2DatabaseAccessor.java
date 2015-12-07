@@ -402,7 +402,7 @@ public class H2DatabaseAccessor {
      * @param tableName - name of the table
      * @return true if table exists, false otherwise
      */
-    private boolean checkIfTableExists(String tableName) throws SQLException {
+    public boolean checkIfTableExists(String tableName) throws SQLException {
         Connection connection = null;
         boolean result = false;
         try {
