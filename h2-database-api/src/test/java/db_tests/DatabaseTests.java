@@ -46,9 +46,9 @@ import static org.junit.Assert.assertTrue;
 public class DatabaseTests {
     private final H2DatabaseAccessor accessor = new H2DatabaseAccessor("sa", "", "tcp://localhost/~/test");
 
-    private static final String TABLE_NAME_UPPER_CASE = "TEST_TABLE";
-    private static final String TABLE_NAME_LOWER_CASE = "test_table";
-    private static final String TABLE_NAME_MIXED_CASE = "Test_Table";
+    private static final String TABLE_NAME_UPPER_CASE = "TESTTABLE";
+    private static final String TABLE_NAME_LOWER_CASE = "testtable";
+    private static final String TABLE_NAME_MIXED_CASE = "TestTable";
     private static final String NON_EXISTING_TABLE_NAME = "nonExistingTable";
     private final List<String> allColumnNames = asList("ID", "FIRST_NAME", "LAST_NAME");
     private final List<String> columnNames = asList("FIRST_NAME", "LAST_NAME");
