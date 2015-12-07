@@ -41,7 +41,7 @@ import java.util.Map.Entry;
 public class H2DatabaseAccessor {
     private final H2DatabaseConnector m_connector;
     private static final String CREATE_TABLE_STATEMENT = "create table \"%s\" (id int unsigned not null auto_increment, primary key (id)";
-    private static final String CREATE_TABLE_COLUMN = ", %s varchar(255) ";
+    private static final String CREATE_TABLE_COLUMN = ", %s varchar(65025) ";
 
     private static final String DROP_TABLE_STATEMENT = "drop table if exists \"%s\";";
 
