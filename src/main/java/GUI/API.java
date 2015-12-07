@@ -26,8 +26,8 @@ public class API {
     H2DatabaseAccessor databaseAccessor = null;
 
     public int connectToDatabase(String url, String login, String password){
-            //TODO: Login to fucking database
         databaseAccessor = new H2DatabaseAccessor(login, password, url);
+        System.out.println("[INFO]:Database connection created");
         return 0;
     }
 
@@ -49,6 +49,7 @@ public class API {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        System.out.println("[INFO]:Connected to source");
         return 0;
     }
 
@@ -59,18 +60,20 @@ public class API {
         for(int i = 0; i < input.size(); i++)
             data.add(new ParsedData(input.get(i)));
 
+        System.out.println("[INFO]:Data parsed");
         return data;
     }
 
     public ObservableList<ParsedData> download(int amount, int offset) {
         List<List<String>> dataFromBase = null;
         try {
-            dataFromBase = databaseAccessor.selectValuesFromTable("ThisProjectSucks", asList("*"),null, amount, offset );
+            dataFromBase = databaseAccessor.selectValuesFromTable("ThisProjectSucks", asList("*"), null, amount, offset );
         } catch (SQLException e) {
             e.printStackTrace();
         }
         ObservableList<ParsedData> data = parse(dataFromBase);
 
+        System.out.println("[INFO]:Data downloaded");
         return data;
     }
 }

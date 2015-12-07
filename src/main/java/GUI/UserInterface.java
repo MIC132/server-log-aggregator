@@ -1,5 +1,8 @@
 package GUI;
-import downloading.*;
+import downloading.FtpSource;
+import downloading.HttpSource;
+import downloading.Source;
+import downloading.SshSource;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -15,17 +18,16 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 
 public class UserInterface extends Application {
-    TabPane root = new TabPane();
-    API api = API.getInstance();
-    ObservableList<ParsedData> dataList = FXCollections.observableArrayList();
-    int numberOfColumns = 0;
-    int offset = 0;
-    int amount = 25;
+    private TabPane root = new TabPane();
+    private API api = API.getInstance();
+    private ObservableList<ParsedData> dataList = FXCollections.observableArrayList();
+    private int numberOfColumns = 0;
+    private int offset = 0;
+    private int amount = 25;
 
     Tab createDatabaseTab(){
         ArrayList<Node> labels = new ArrayList<>();
@@ -33,8 +35,10 @@ public class UserInterface extends Application {
 
         Label urlLabel = new Label("URL:");
         TextField urlTextField = new TextField();
+
         Label loginLabel = new Label("Login:");
         TextField loginTextField = new TextField();
+
         Label passwordLabel = new Label("Password:");
         TextField passwordTextField = new TextField();
 
@@ -70,7 +74,7 @@ public class UserInterface extends Application {
         configurationTabContent.getChildren().addAll(leftColumn, rightColumn);
 
         Tab configurationTab = new Tab();
-        configurationTab.setText("Configuration");
+        configurationTab.setText("Database Connection");
         configurationTab.setClosable(false);
         configurationTab.setContent(configurationTabContent);
 
@@ -81,35 +85,41 @@ public class UserInterface extends Application {
         ArrayList<Node> labels = new ArrayList<>();
         ArrayList<Node> fields = new ArrayList<>();
 
-        /**
-         * This part creates all needed labels and fields, as well as sets theis properties
-         */
         Label urlLabel = new Label("URL:");
         TextField urlTextField = new TextField();
+
         Label pathLabel = new Label("Path:");
         TextField pathTextField = new TextField();
+
         Label filenamePatternLabel = new Label("Filename Pattern:");
         TextField filenamePatternTextField = new TextField();
+
         Label regexpLabel = new Label("Regexp:");
         TextField regexpTextField = new TextField();
+
         Label timeStampingTypeLabel = new Label("Time Stamping:");
         ComboBox<ChronoUnit> timeStampingTypeComboBox = new ComboBox<>();
         timeStampingTypeComboBox.getItems().addAll(ChronoUnit.values());
+
         Label sourceTypeLabel = new Label("Source:");
         ComboBox<SourceType> sourceTypeComboBox = new ComboBox<>();
         sourceTypeComboBox.getItems().addAll(SourceType.values());
+
         Label stepAmountLabel = new Label("Step Amount:");
         TextField stepAmountTextField = new TextField();
+
         Label startDateLabel = new Label("Start date:");
         DatePicker startDatePicker = new DatePicker();
+
         Label loginLabel = new Label("Login:");
         TextField loginTextField = new TextField();
+
         Label passwordLabel = new Label("Password:");
         TextField passwordTextField = new TextField();
 
 
         Button submitButton = new Button();
-        submitButton.setText("Podłącz");
+        submitButton.setText("Parse logs to database");
         submitButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
@@ -158,7 +168,7 @@ public class UserInterface extends Application {
         });
 
         Button downloadButton = new Button();
-        downloadButton.setText("Pobierz");
+        downloadButton.setText("Browse logs from database");
         downloadButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
@@ -167,9 +177,6 @@ public class UserInterface extends Application {
             }
         });
 
-        /**
-         * This part allows us to add created labels to columns, managing their order
-         */
         labels.add(urlLabel);
         labels.add(pathLabel);
         labels.add(filenamePatternLabel);
@@ -194,9 +201,6 @@ public class UserInterface extends Application {
         fields.add(passwordTextField);
         fields.add(downloadButton);
 
-        /**
-         * Padding of columns, their order and name of tab
-         */
         VBox leftColumn = new VBox();
         leftColumn.getChildren().addAll(labels);
         leftColumn.setPadding(new Insets(12,10,10,10));
@@ -210,7 +214,7 @@ public class UserInterface extends Application {
         configurationTabContent.getChildren().addAll(leftColumn, rightColumn);
 
         Tab configurationTab = new Tab();
-        configurationTab.setText("Configuration");
+        configurationTab.setText("Source Configuration");
         configurationTab.setClosable(false);
         configurationTab.setContent(configurationTabContent);
 
@@ -231,12 +235,10 @@ public class UserInterface extends Application {
         numberOfColumns = 0;
         TableView table = new TableView();
         while(root.getTabs().size() > 2) root.getTabs().remove(2);
-
-        for(int i = 0; i < dataList.get(0).numberOfColumns; i++)
-            addColumn(table);
-
+        for(int i = 0; i < dataList.get(0).numberOfColumns; i++) addColumn(table);
         table.setItems(dataList);
         table.setPrefHeight(4096.00);
+
         Button first = new Button("|<");
         first.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
@@ -282,7 +284,7 @@ public class UserInterface extends Application {
         browsingTabContent.getChildren().addAll(table, browsingButtons);
 
         Tab browsingTab = new Tab();
-        browsingTab.setText("Browse");
+        browsingTab.setText("Log Browsing");
         browsingTab.setClosable(false);
         browsingTab.setContent(browsingTabContent);
         root.getTabs().add(browsingTab);
@@ -295,7 +297,7 @@ public class UserInterface extends Application {
         root.getTabs().add(createDatabaseTab());
         root.getTabs().add(createConfigurationTab());
 
-        primaryStage.setScene(new Scene(root, 400, 400));
+        primaryStage.setScene(new Scene(root, 500, 500));
         primaryStage.show();
     }
 
