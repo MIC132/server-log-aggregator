@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +35,7 @@ public class API {
         DownloadManager downloadManager = null;
         try {
             downloadManager = new DownloadManager(source);
-            List<List<String>> data = downloadManager.initialDownload(LocalDateTime.from(since));
+            List<List<String>> data = downloadManager.initialDownload(LocalDateTime.of(since, LocalTime.MIDNIGHT));
             int howManyColumns = data.get(0).size();
             List<String> colNames = new ArrayList<>();
             for(int i = 0; i < howManyColumns; i++)colNames.add("col_" + (i+1));
