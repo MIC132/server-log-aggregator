@@ -257,7 +257,7 @@ public class H2DatabaseAccessor {
         }
 
         // Create string with SQL statement
-        StringBuilder statementBuilder = new StringBuilder("select");
+        StringBuilder statementBuilder = new StringBuilder("select ");
         statementBuilder.append(columnNames.get(0).replaceAll(ESCAPE_CHARACTER_REGEX, ""));
         for (int i = 1; i < columnNames.size(); i++) {
             statementBuilder.append(", ")
