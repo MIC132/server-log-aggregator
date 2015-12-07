@@ -69,7 +69,8 @@ public class H2DatabaseAccessor {
      *
      * @param tableName   - name of a new table
      * @param columnNames - list of column names
-     * @return boolean value, <code>true</code> if table was created succesfully, <code>false</code> otherwise
+     * @return boolean value, <code>true</code> if table was created successfully, <code>false</code> otherwise
+     * @exception SQLException - when operation wasn't successfull or connection was impossible
      */
     public boolean addTable(String tableName, List<String> columnNames) throws SQLException {
         dropTable(tableName);
@@ -121,6 +122,7 @@ public class H2DatabaseAccessor {
      * Removes table of given name (if exists) from database
      *
      * @param tableName - name of a table
+     * @exception SQLException - when operation wasn't successfull or connection was impossible
      */
     public void dropTable(String tableName) throws SQLException {
         Connection connection = null;
@@ -157,6 +159,7 @@ public class H2DatabaseAccessor {
      * @param columnNames - list of column names in table (except default primary key ID)
      * @param rowsValues  - list of list with values of each new row in table
      * @return boolean value, <code>true</code> if row was inserted succesfully, <code>false</code> otherwise
+     * @exception SQLException - when operation wasn't successfull or connection was impossible
      */
     public boolean addRowsToTable(String tableName, List<String> columnNames, List<List<String>> rowsValues) throws SQLException {
         boolean result = true;
@@ -221,6 +224,7 @@ public class H2DatabaseAccessor {
      * @param columnNames     - list of column names
      * @param columnRegexMap- contains pairs of column name (key) and associated regex (value).
      * @return ResultSet of executed query
+     * @exception SQLException - when operation wasn't successfull or connection was impossible
      */
     public List<List<String>> selectValuesFromTable(String tableName, List<String> columnNames,
                                                     Map<String, String> columnRegexMap) throws SQLException {
@@ -236,6 +240,7 @@ public class H2DatabaseAccessor {
      * @param limit           - maximum number of rows that should be
      * @param offset          - skip that many rows before beginning to return row
      * @return ResultSet of executed query
+     * @exception SQLException - when operation wasn't successfull or connection was impossible
      */
     public List<List<String>> selectValuesFromTable(String tableName, List<String> columnNames,
                                                     Map<String, String> columnRegexMap,
@@ -306,6 +311,7 @@ public class H2DatabaseAccessor {
      * @param tableName       - name of table
      * @param columnRegexMap- contains pairs of column name (key) and associated regex (value).
      * @return ResultSet of executed query
+     * @exception SQLException - when operation wasn't successfull or connection was impossible
      */
     public int countValuesFromTable(String tableName, Map<String, String> columnRegexMap) throws SQLException {
         return countValuesFromTable(tableName, columnRegexMap, null, null);
@@ -319,6 +325,7 @@ public class H2DatabaseAccessor {
      * @param limit           - maximum number of rows that should be
      * @param offset          - skip that many rows before beginning to return row
      * @return ResultSet of executed query
+     * @exception SQLException - when operation wasn't successfull or connection was impossible
      */
     public int countValuesFromTable(String tableName, Map<String, String> columnRegexMap,
                                     Integer limit, Integer offset) throws SQLException {
@@ -368,6 +375,7 @@ public class H2DatabaseAccessor {
      *
      * @param tableName - name of the table
      * @return list of column names
+     * @exception SQLException - when operation wasn't successfull or connection was impossible
      */
     public List<String> getColumnNames(String tableName) throws SQLException {
         List<String> columnNames = new LinkedList<>();
@@ -401,6 +409,7 @@ public class H2DatabaseAccessor {
      *
      * @param tableName - name of the table
      * @return true if table exists, false otherwise
+     * @exception SQLException - when operation wasn't successfull or connection was impossible
      */
     public boolean checkIfTableExists(String tableName) throws SQLException {
         Connection connection = null;
@@ -433,6 +442,7 @@ public class H2DatabaseAccessor {
      * @param statementBuilder - reference to StringBuilder used to create statement
      * @param columnRegexMap-  contains pairs of column name (key) and associated regex (value).
      * @return true if table exists, false otherwise
+     * @exception SQLException - when operation wasn't successfull or connection was impossible
      */
     private void addRegexesToStatement(StringBuilder statementBuilder, Map<String, String> columnRegexMap) {
         statementBuilder.append(" where ");
@@ -461,6 +471,7 @@ public class H2DatabaseAccessor {
      * @param limit -  value for the LIMIT parameter
      * @param offset - value for the OFFSET parameter
      * @return true if table exists, false otherwise
+     * @exception SQLException - when operation wasn't successfull or connection was impossible
      */
     private void addOffsetAndLimitToStatement(StringBuilder statementBuilder, Integer limit, Integer offset) {
         statementBuilder.append(" limit ").append(limit);
