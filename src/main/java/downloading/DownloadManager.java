@@ -44,6 +44,10 @@ import java.util.List;
 /**
  * Created by MIC on 2015-11-29.
  */
+
+/**
+ * Class used for managing downloads from single Source
+ */
 public class DownloadManager {
 
     final Source source;
@@ -51,6 +55,13 @@ public class DownloadManager {
     final DateTimeFormatter formatter;
     final FileParser parser;
 
+    /**
+     * Quite self explanatory.
+     *
+     * @param source Source from which this download manager will be downloading.
+     * @throws IOException When there is problem with downloading.
+     * @throws JSchException When there is problem with downloading from ssh.
+     */
     public DownloadManager(Source source) throws IOException, JSchException {
         this.source = source;
         if(source.type == Source.Type.HTTP){
@@ -68,6 +79,13 @@ public class DownloadManager {
         this.parser = new FileParser(new Splitter(source.splitPattern));
     }
 
+    /**
+     * Downloads and parses logs from startTime till now. Continuation indicates whether position rememberd in file should be used.
+     *
+     * @param startTime Since when the logs should be downloaded
+     * @param continuation Whether to use remembered position
+     * @return List of log entries, each as List of Strings, according to the splitting regex.
+     */
     private List<List<String>> downloadFromDate(LocalDateTime startTime, boolean continuation){
         LocalDateTime endTime = LocalDateTime.now();
         LocalDateTime currentTime = startTime;
@@ -101,10 +119,21 @@ public class DownloadManager {
         return out;
     }
 
+    /**
+     * Performs initial download since the given startTime.
+     *
+     * @param startTime from when the download should be performed.
+     * @return  List of log entries, each as List of Strings, according to the splitting regex.
+     */
     public List<List<String>> initialDownload(LocalDateTime startTime){
         return downloadFromDate(startTime, false);
     }
 
+    /**
+     * Performs an updating download, that is since the last downloaded file.
+     *
+     * @return List of log entries, each as List of Strings, according to the splitting regex.
+     */
     public List<List<String>> downloadSinceLast(){
         LocalDateTime startDate = source.lastDownload;
         return downloadFromDate(startDate, true);
