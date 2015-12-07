@@ -15,6 +15,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 
@@ -151,9 +152,8 @@ public class UserInterface extends Application {
                                 Integer.parseInt(stepAmountTextField.getText())
                         );
                         break;
-
                 }
-                api.connectToSource(source, startDatePicker.getValue());
+                api.connectToSource(source,  startDatePicker.getValue());
             }
         });
 

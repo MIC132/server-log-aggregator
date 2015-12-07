@@ -41,7 +41,7 @@ import java.util.Map.Entry;
 public class H2DatabaseAccessor {
     private final H2DatabaseConnector m_connector;
     private static final String CREATE_TABLE_STATEMENT = "create table \"%s\" (id int unsigned not null auto_increment, primary key (id)";
-    private static final String CREATE_TABLE_COLUMN = ", %s varchar(255) ";
+    private static final String CREATE_TABLE_COLUMN = ", %s varchar(65025) ";
 
     private static final String DROP_TABLE_STATEMENT = "drop table if exists \"%s\";";
 
@@ -263,7 +263,7 @@ public class H2DatabaseAccessor {
             statementBuilder.append(", ")
                     .append(columnNames.get(i).replaceAll(ESCAPE_CHARACTER_REGEX, ""));
         }
-        statementBuilder.append(" from ").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, ""));
+        statementBuilder.append(" from \"").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, "")).append("\"");
         if (columnRegexMap != null && !columnRegexMap.isEmpty()) {
             addRegexesToStatement(statementBuilder, columnRegexMap);
         }
@@ -338,7 +338,7 @@ public class H2DatabaseAccessor {
         }
 
         // Create string with SQL statement
-        StringBuilder statementBuilder = new StringBuilder("select count(*) from ").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, ""));
+        StringBuilder statementBuilder = new StringBuilder("select count(*) from \"").append(tableName.replaceAll(ESCAPE_CHARACTER_REGEX, "")).append("\"");
         if (columnRegexMap != null && !columnRegexMap.isEmpty()) {
             addRegexesToStatement(statementBuilder, columnRegexMap);
         }
