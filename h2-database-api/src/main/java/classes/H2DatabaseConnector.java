@@ -97,6 +97,7 @@ public class H2DatabaseConnector {
      * Returns the instance of <code>Connection</code> class using values of fields username, password and databaseURL
      *
      * @return New instance of <code>Connection</code>
+     * @exception SQLException - when operation wasn't successfull or connection was impossible
      */
     public Connection getConnection() throws SQLException {
         Connection connection;
