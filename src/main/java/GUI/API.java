@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Arrays.asList;
+
 /**
  * Created by Vulpes on 2015-12-06.
  */
@@ -49,15 +51,24 @@ public class API {
         return 0;
     }
 
-    public ObservableList<ParsedData> download(int amount, int offset) {
-        //TODO: get data from database, send it to GUI
-        //TODO: remove dummy version below
-
+    ObservableList<ParsedData> parse(List<List<String>> input){
         ObservableList<ParsedData> data = FXCollections.observableArrayList();
+        if(input == null) return data;
 
-        for(Integer i = offset; i < offset + amount; i++){
-            data.add(new ParsedData(4));
+        for(int i = 0; i < input.size(); i++)
+            data.add(new ParsedData(input.get(i)));
+
+        return data;
+    }
+
+    public ObservableList<ParsedData> download(int amount, int offset) {
+        List<List<String>> dataFromBase = null;
+        try {
+            dataFromBase = databaseAccessor.selectValuesFromTable("ThisProjectSucks", asList("*"),null, amount, offset );
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+        ObservableList<ParsedData> data = parse(dataFromBase);
 
         return data;
     }
