@@ -1,4 +1,4 @@
-package classes;/*
+package h2_database_api.classes;/*
 Copyright (c) 2015, AGH University of Science and Technology
 All rights reserved.
 
@@ -44,7 +44,7 @@ public class H2DatabaseConnector {
     private final String databaseURL;
 
     /**
-     * Constructs a new @see classes.H2DatabaseConnector with username, password and databaseURL
+     * Constructs a new @see h2_database_api.classes.H2DatabaseConnector with username, password and databaseURL
      *
      * @param username    - name of user account used for connecting with database
      * @param password    - password credentials

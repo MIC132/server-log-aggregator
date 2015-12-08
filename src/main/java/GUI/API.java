@@ -1,5 +1,5 @@
 package GUI;
-import classes.H2DatabaseAccessor;
+import h2_database_api.classes.H2DatabaseAccessor;
 import com.jcraft.jsch.JSchException;
 import downloading.DownloadManager;
 import downloading.Source;
